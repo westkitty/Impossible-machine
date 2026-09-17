@@ -11,7 +11,8 @@
     "qa:setup": "node qa/setup.mjs",
     "qa": "node qa/run.mjs",
     "qa:browser": "npm run prepare:three && node qa/browser.mjs",
-    "qa:three": "npm run prepare:three && node qa/three-runtime.mjs"
+    "qa:three": "npm run prepare:three && node qa/three-runtime.mjs",
+    "qa:three-state": "node qa/machine-state.mjs"
   },
   "dependencies": {
     "three": "0.186.0"
