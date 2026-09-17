@@ -76,10 +76,7 @@ function addDeimos(group, animate) {
   safeDoorPivot.add(safeDoor, safeHandle);
   group.add(safeDoorPivot);
 
-  const targets = {
-    orientation: 0,
-    safeDoor: 0
-  };
+  const targets = { orientation: 0, safeDoor: 0 };
 
   animate.push((t) => {
     orientationFrame.rotation.z += (targets.orientation - orientationFrame.rotation.z) * 0.085;
@@ -135,10 +132,7 @@ function addChronostat(group, animate) {
     group.add(echo);
   }
 
-  const plateMaterial = mat(C.dark, 0.18, 0.32, {
-    emissive: C.brass,
-    emissiveIntensity: 0.02
-  });
+  const plateMaterial = mat(C.dark, 0.18, 0.32, { emissive: C.brass, emissiveIntensity: 0.02 });
   const plate = new THREE.Mesh(new THREE.BoxGeometry(1.5, 0.62, 0.08), plateMaterial);
   plate.position.set(0, 0.18, -0.92);
 
@@ -155,10 +149,7 @@ function addChronostat(group, animate) {
 
   const markers = [];
   for (let i = 0; i < 6; i++) {
-    const markerMaterial = mat(C.iron, 0.3, 0.52, {
-      emissive: C.brass,
-      emissiveIntensity: 0.02
-    });
+    const markerMaterial = mat(C.iron, 0.3, 0.52, { emissive: C.brass, emissiveIntensity: 0.02 });
     const marker = new THREE.Mesh(new THREE.SphereGeometry(0.055, 12, 8), markerMaterial);
     marker.position.set(-0.5 + i * 0.2, 1.34, 0.02);
     markers.push(marker);
@@ -166,34 +157,23 @@ function addChronostat(group, animate) {
   }
 
   group.add(assembly, pendulum, plate, keyBase, keyPivot);
-
-  const targets = {
-    phaseOffset: 0,
-    signalStrength: 0,
-    waiting: false,
-    unlocked: false,
-    roundTrips: 0
-  };
+  const targets = { phaseOffset: 0, signalStrength: 0, waiting: false, unlocked: false, roundTrips: 0 };
 
   animate.push((t) => {
     const steppedTime = targets.waiting ? Math.floor(t * 8) / 8 : t;
     const pendulumTime = targets.waiting ? Math.floor(t * 7) / 7 : t;
     const frequency = targets.unlocked ? 1.4 : 1.4 + targets.roundTrips * 0.045;
-
     assembly.rotation.y = steppedTime * 0.2 + targets.phaseOffset;
     rings.forEach(({ mesh, baseZ }, index) => {
       mesh.rotation.z = baseZ + Math.sin(steppedTime * (0.18 + index * 0.025)) * 0.035;
     });
-
     pendulum.rotation.z = Math.sin(pendulumTime * frequency) * 0.5;
     echoes.forEach((echo, index) => {
       const delay = (index + 1) * 0.085;
       echo.rotation.z = Math.sin((pendulumTime - delay) * frequency) * 0.5;
     });
-
     const keyTarget = targets.waiting ? -0.22 : 0.02;
     keyPivot.rotation.z += (keyTarget - keyPivot.rotation.z) * 0.18;
-
     const pulse = targets.waiting ? 0.12 + Math.abs(Math.sin(t * 6)) * 0.24 : 0;
     plateMaterial.emissiveIntensity = 0.03 + targets.signalStrength * 0.48 + pulse;
   });
@@ -205,14 +185,11 @@ function addChronostat(group, animate) {
       targets.waiting = projection.waitingForReply;
       targets.unlocked = projection.unlockedVerb;
       targets.roundTrips = projection.roundTrips;
-
       plateMaterial.emissive.setHex(projection.unlockedVerb ? C.green : C.brass);
       plateMaterial.color.setHex(projection.unlockedVerb ? 0x182118 : C.dark);
-
       echoes.forEach((echo, index) => {
         echo.visible = projection.roundTrips > index || projection.waitingForReply;
       });
-
       markers.forEach((marker, index) => {
         const active = index < projection.roundTrips;
         marker.material.color.setHex(active ? C.brass : C.iron);
@@ -228,10 +205,7 @@ function addAtlas(group, animate) {
   const globeMaterial = mat(0x1d2119, 0.05, 0.85, { emissive: 0x000000, emissiveIntensity: 0 });
   const globe = new THREE.Mesh(new THREE.IcosahedronGeometry(0.95, 3), globeMaterial);
   const wireMaterial = new THREE.LineBasicMaterial({ color: C.brass, transparent: true, opacity: 0.72 });
-  const wire = new THREE.LineSegments(
-    new THREE.WireframeGeometry(new THREE.IcosahedronGeometry(0.99, 2)),
-    wireMaterial
-  );
+  const wire = new THREE.LineSegments(new THREE.WireframeGeometry(new THREE.IcosahedronGeometry(0.99, 2)), wireMaterial);
 
   const topologyRings = [];
   for (let i = 0; i < 3; i++) {
@@ -255,37 +229,27 @@ function addAtlas(group, animate) {
     new THREE.SphereGeometry(0.07, 12, 8),
     mat(C.oxide, 0.2, 0.5, { emissive: C.oxide, emissiveIntensity: 0.35 })
   );
-
   atlasFrame.add(globe, wire, coastLine, marker);
   group.add(atlasFrame);
-
-  const targets = {
-    topologyStrength: 0,
-    lockedShapeCount: 0,
-    draftStrokeCount: 0,
-    openedSundial: false
-  };
+  const targets = { topologyStrength: 0, lockedShapeCount: 0, draftStrokeCount: 0, openedSundial: false };
 
   animate.push((t) => {
     const stability = targets.openedSundial ? 0.35 : 1;
     globe.rotation.y = t * (0.075 + targets.topologyStrength * 0.05) * stability;
     wire.rotation.y = globe.rotation.y;
     wire.rotation.z = Math.sin(t * 0.26) * targets.topologyStrength * 0.16 * stability;
-
     topologyRings.forEach((topologyRing, index) => {
       if (!topologyRing.visible) return;
       const direction = index % 2 === 0 ? 1 : -1;
       topologyRing.rotation.z += direction * (0.0018 + targets.topologyStrength * 0.0024) * stability;
       topologyRing.rotation.x += Math.sin(t * (0.19 + index * 0.035)) * 0.0007 * targets.topologyStrength;
     });
-
     const orbitRate = targets.openedSundial ? 0.18 : 0.56 + targets.draftStrokeCount * 0.035;
     marker.position.set(
       Math.cos(t * orbitRate) * 1.22,
       Math.sin(t * orbitRate * 0.73) * (0.38 + targets.topologyStrength * 0.28),
       Math.sin(t * orbitRate) * 1.22
     );
-
     const breathe = 1 + Math.sin(t * 0.9) * targets.topologyStrength * 0.018 * stability;
     atlasFrame.scale.setScalar(breathe);
   });
@@ -296,12 +260,10 @@ function addAtlas(group, animate) {
       targets.lockedShapeCount = projection.lockedShapeCount;
       targets.draftStrokeCount = projection.draftStrokeCount;
       targets.openedSundial = projection.openedSundial;
-
       topologyRings.forEach((topologyRing, index) => {
         topologyRing.visible = projection.lockedShapeCount > index;
         topologyRing.material.color.setHex(projection.openedSundial ? C.green : (index === 1 ? C.bone : C.brass));
       });
-
       const path = projection.latestLockedPath || [];
       coastGeometry.setDrawRange(0, Math.min(path.length, 48));
       coastLine.visible = path.length >= 2;
@@ -316,7 +278,6 @@ function addAtlas(group, animate) {
         coastPositions[i * 3 + 2] = radius * cosLat * Math.sin(longitude);
       }
       coastAttribute.needsUpdate = true;
-
       const solvedColor = projection.openedSundial ? C.green : C.brass;
       coastMaterial.color.setHex(solvedColor);
       coastMaterial.opacity = projection.openedSundial ? 1 : 0.82;
@@ -335,35 +296,16 @@ function addArchive(group, animate) {
   const cabinetMaterial = mat(C.iron, 0.34, 0.72, { emissive: 0x000000, emissiveIntensity: 0 });
   const cabinetBody = new THREE.Mesh(new THREE.BoxGeometry(2.35, 2.05, 0.72), cabinetMaterial);
   cabinet.add(cabinetBody);
-
-  const unsolvedPositions = [
-    [-0.72, 0.52],
-    [0.04, 0.7],
-    [0.73, 0.43],
-    [-0.58, -0.34],
-    [0.16, -0.55],
-    [0.71, -0.26]
-  ];
-  const solvedPositions = [
-    [-0.7, 0.48],
-    [0, 0.48],
-    [0.7, 0.48],
-    [-0.7, -0.28],
-    [0, -0.28],
-    [0.7, -0.28]
-  ];
-
+  const unsolvedPositions = [[-0.72,0.52],[0.04,0.7],[0.73,0.43],[-0.58,-0.34],[0.16,-0.55],[0.71,-0.26]];
+  const solvedPositions = [[-0.7,0.48],[0,0.48],[0.7,0.48],[-0.7,-0.28],[0,-0.28],[0.7,-0.28]];
   const drawers = [];
   const progressPins = [];
+
   for (let i = 0; i < 6; i++) {
     const drawerGroup = new THREE.Group();
     const [x, y] = unsolvedPositions[i];
     drawerGroup.position.set(x, y, 0.38);
-
-    const drawerMaterial = mat(0x25281f, 0.32, 0.68, {
-      emissive: C.brass,
-      emissiveIntensity: 0.01
-    });
+    const drawerMaterial = mat(0x25281f, 0.32, 0.68, { emissive: C.brass, emissiveIntensity: 0.01 });
     const drawer = new THREE.Mesh(new THREE.BoxGeometry(0.56, 0.4, 0.2), drawerMaterial);
     const labelPlate = new THREE.Mesh(
       new THREE.BoxGeometry(0.28, 0.12, 0.025),
@@ -383,43 +325,26 @@ function addArchive(group, animate) {
     progressPins.push(pin);
   }
 
-  const alignmentRailMaterial = mat(C.brass, 0.58, 0.36, {
-    emissive: C.green,
-    emissiveIntensity: 0
-  });
+  const alignmentRailMaterial = mat(C.brass, 0.58, 0.36, { emissive: C.green, emissiveIntensity: 0 });
   const alignmentRail = new THREE.Mesh(new THREE.BoxGeometry(1.48, 0.045, 0.055), alignmentRailMaterial);
   alignmentRail.position.set(0, -0.98, 0.39);
   cabinet.add(alignmentRail);
-
   group.add(cabinet);
-
-  const targets = {
-    revealedCount: 0,
-    completion: 0,
-    allRevealed: false,
-    solved: false
-  };
+  const targets = { revealedCount: 0, completion: 0, allRevealed: false, solved: false };
 
   animate.push((t) => {
     const drift = targets.solved ? 0 : Math.sin(t * 0.22) * (0.045 + targets.completion * 0.035);
     cabinet.rotation.y += (drift - cabinet.rotation.y) * 0.04;
-
     drawers.forEach((entry, index) => {
       const destination = targets.solved ? entry.solved : entry.base;
       entry.group.position.x += (destination[0] - entry.group.position.x) * 0.08;
       entry.group.position.y += (destination[1] - entry.group.position.y) * 0.08;
-
       const revealed = index < targets.revealedCount;
       const targetZ = targets.solved ? 0.38 : revealed ? 0.62 + index * 0.012 : 0.38;
       entry.group.position.z += (targetZ - entry.group.position.z) * 0.11;
-
-      if (!targets.solved && revealed) {
-        entry.group.rotation.z = Math.sin(t * (0.31 + index * 0.025) + index) * 0.018;
-      } else {
-        entry.group.rotation.z += (0 - entry.group.rotation.z) * 0.1;
-      }
+      if (!targets.solved && revealed) entry.group.rotation.z = Math.sin(t * (0.31 + index * 0.025) + index) * 0.018;
+      else entry.group.rotation.z += (0 - entry.group.rotation.z) * 0.1;
     });
-
     const railPulse = targets.allRevealed && !targets.solved ? 0.08 + Math.abs(Math.sin(t * 1.1)) * 0.1 : 0;
     alignmentRailMaterial.emissiveIntensity = targets.solved ? 0.5 : railPulse;
   });
@@ -430,12 +355,10 @@ function addArchive(group, animate) {
       targets.completion = projection.completion;
       targets.allRevealed = projection.allRevealed;
       targets.solved = projection.solved;
-
       cabinetMaterial.emissive.setHex(projection.solved ? C.green : 0x000000);
       cabinetMaterial.emissiveIntensity = projection.solved ? 0.055 : 0;
       alignmentRailMaterial.color.setHex(projection.solved ? C.green : C.brass);
       alignmentRailMaterial.emissive.setHex(projection.solved ? C.green : C.brass);
-
       drawers.forEach((entry, index) => {
         const revealed = index < projection.revealedCount;
         entry.drawer.material.color.setHex(revealed ? 0x303329 : 0x22251e);
@@ -445,7 +368,6 @@ function addArchive(group, animate) {
         entry.labelPlate.material.emissive.setHex(projection.solved ? C.green : C.brass);
         entry.labelPlate.material.emissiveIntensity = revealed ? (projection.solved ? 0.6 : 0.16) : 0.01;
       });
-
       progressPins.forEach((pin, index) => {
         const active = index < projection.revealedCount;
         pin.material.color.setHex(active ? (projection.solved ? C.green : C.brass) : C.iron);
@@ -457,12 +379,8 @@ function addArchive(group, animate) {
 }
 
 function addOracle(group, animate) {
-  const pedestal = new THREE.Mesh(
-    new THREE.CylinderGeometry(0.13, 0.19, 2.05, 18),
-    mat(C.brass, 0.72, 0.32)
-  );
+  const pedestal = new THREE.Mesh(new THREE.CylinderGeometry(0.13, 0.19, 2.05, 18), mat(C.brass, 0.72, 0.32));
   pedestal.position.y = -0.22;
-
   const beamPivot = new THREE.Group();
   beamPivot.position.y = 0.72;
   const beamMaterial = mat(C.bone, 0.55, 0.38, { emissive: C.green, emissiveIntensity: 0 });
@@ -496,10 +414,8 @@ function addOracle(group, animate) {
   for (let i = 0; i < 9; i++) {
     const tokenMaterial = mat(C.brass, 0.38, 0.5, { emissive: C.brass, emissiveIntensity: 0.03 });
     const marker = new THREE.Mesh(
-      i % 3 === 0
-        ? new THREE.OctahedronGeometry(0.075, 0)
-        : i % 3 === 1
-          ? new THREE.BoxGeometry(0.11, 0.11, 0.11)
+      i % 3 === 0 ? new THREE.OctahedronGeometry(0.075, 0)
+        : i % 3 === 1 ? new THREE.BoxGeometry(0.11, 0.11, 0.11)
           : new THREE.SphereGeometry(0.07, 12, 8),
       tokenMaterial
     );
@@ -521,28 +437,15 @@ function addOracle(group, animate) {
     group.add(marker);
     zeroMarkers.push(marker);
   }
-
   group.add(pedestal, beamPivot, aperture, inverseHalo);
-
-  const targets = {
-    balanceSignal: 0,
-    placedCount: 0,
-    readings: [],
-    zeroReadingCount: 0,
-    negativeReadingCount: 0,
-    inverseObserved: false,
-    ruleLearned: false,
-    openedDirector: false
-  };
+  const targets = { balanceSignal: 0, placedCount: 0, readings: [], zeroReadingCount: 0, negativeReadingCount: 0, inverseObserved: false, ruleLearned: false, openedDirector: false };
 
   animate.push((t) => {
     const targetTilt = targets.openedDirector ? 0 : targets.balanceSignal * 0.34;
     beamPivot.rotation.z += (targetTilt - beamPivot.rotation.z) * 0.075;
-
     const unsettled = targets.inverseObserved && !targets.openedDirector;
     pans[0].group.rotation.z = unsettled ? Math.sin(t * 0.8) * 0.035 : 0;
     pans[1].group.rotation.z = unsettled ? -Math.sin(t * 0.8) * 0.035 : 0;
-
     tokenMarkers.forEach((marker, index) => {
       if (!marker.visible) return;
       const entry = targets.readings[index];
@@ -553,13 +456,11 @@ function addOracle(group, animate) {
       marker.rotation.y += 0.006 + Math.abs(normalized) * 0.014;
       marker.rotation.x += entry?.polarity === 'negative' ? 0.011 : 0.003;
     });
-
     zeroMarkers.forEach((marker, index) => {
       if (!marker.visible) return;
       marker.rotation.z = t * (0.3 + index * 0.08);
       marker.position.y += Math.sin(t * (0.7 + index * 0.1) + index) * 0.0015;
     });
-
     inverseHalo.rotation.z = t * (targets.ruleLearned ? 0.18 : 0.48);
     const apertureTargetScale = targets.ruleLearned ? 1.28 : 0.72 + Math.abs(Math.sin(t * 0.42)) * 0.35;
     aperture.scale.y += (apertureTargetScale - aperture.scale.y) * 0.06;
@@ -575,7 +476,6 @@ function addOracle(group, animate) {
       targets.inverseObserved = projection.inverseObserved;
       targets.ruleLearned = projection.ruleLearned;
       targets.openedDirector = projection.openedDirector;
-
       inverseHalo.visible = projection.inverseObserved;
       inverseHalo.material.color.setHex(projection.ruleLearned ? C.green : C.oxide);
       apertureMaterial.emissive.setHex(projection.openedDirector ? C.green : projection.ruleLearned ? C.green : C.brass);
@@ -586,21 +486,15 @@ function addOracle(group, animate) {
         pan.material.emissive.setHex(projection.openedDirector ? C.green : 0x000000);
         pan.material.emissiveIntensity = projection.openedDirector ? 0.08 : 0;
       });
-
       tokenMarkers.forEach((marker, index) => {
         const entry = projection.readingEntries[index];
         marker.visible = !!entry;
         if (!entry) return;
-        const color = entry.polarity === 'negative'
-          ? C.oxide
-          : entry.polarity === 'zero'
-            ? (projection.ruleLearned ? C.green : C.bone)
-            : C.brass;
+        const color = entry.polarity === 'negative' ? C.oxide : entry.polarity === 'zero' ? (projection.ruleLearned ? C.green : C.bone) : C.brass;
         marker.material.color.setHex(color);
         marker.material.emissive.setHex(color);
         marker.material.emissiveIntensity = entry.polarity === 'zero' ? 0.3 : 0.08;
       });
-
       zeroMarkers.forEach((marker, index) => {
         marker.visible = index < projection.zeroReadingCount;
         marker.material.emissiveIntensity = projection.ruleLearned ? 0.42 : 0.08;
@@ -610,26 +504,123 @@ function addOracle(group, animate) {
 }
 
 function addVerboten(group, animate) {
-  const shell = new THREE.Mesh(
-    new THREE.CylinderGeometry(0.68, 0.68, 2.3, 36, 1, true),
-    mat(C.bone, 0.05, 0.2, { transparent: true, opacity: 0.16, side: THREE.DoubleSide })
-  );
+  const machine = new THREE.Group();
+  const shellMaterial = mat(C.bone, 0.05, 0.2, { transparent: true, opacity: 0.16, side: THREE.DoubleSide, emissive: 0x000000, emissiveIntensity: 0 });
+  const shell = new THREE.Mesh(new THREE.CylinderGeometry(0.68, 0.68, 2.3, 36, 1, true), shellMaterial);
   const top = ring(0.68, C.brass, 0.05);
   const bottom = ring(0.68, C.brass, 0.05);
   top.rotation.x = bottom.rotation.x = Math.PI / 2;
   top.position.y = 1.15;
   bottom.position.y = -1.15;
-  const knot = new THREE.Mesh(
-    new THREE.TorusKnotGeometry(0.36, 0.075, 80, 10),
-    mat(C.oxide, 0.58, 0.3, { emissive: C.oxide, emissiveIntensity: 0.13 })
-  );
-  group.add(shell, top, bottom, knot);
+
+  const knotMaterial = mat(C.oxide, 0.58, 0.3, { emissive: C.oxide, emissiveIntensity: 0.13 });
+  const knot = new THREE.Mesh(new THREE.TorusKnotGeometry(0.36, 0.075, 80, 10), knotMaterial);
+
+  const spool = new THREE.Mesh(new THREE.CylinderGeometry(0.28, 0.28, 0.26, 24), mat(C.iron, 0.48, 0.5));
+  spool.rotation.z = Math.PI / 2;
+  spool.position.set(-1.05, 0.72, 0);
+
+  const tapeMaterial = mat(C.bone, 0.02, 0.92, { emissive: C.brass, emissiveIntensity: 0.01 });
+  const tape = new THREE.Mesh(new THREE.BoxGeometry(1.18, 0.07, 0.025), tapeMaterial);
+  tape.position.set(-0.35, 0.72, 0.05);
+
+  const furnaceMaterial = mat(0x23140f, 0.2, 0.8, { emissive: C.oxide, emissiveIntensity: 0.08 });
+  const furnace = new THREE.Mesh(new THREE.BoxGeometry(0.56, 0.72, 0.48), furnaceMaterial);
+  furnace.position.set(1.15, -0.58, 0);
+  const mouth = new THREE.Mesh(new THREE.BoxGeometry(0.32, 0.18, 0.05), mat(C.dark, 0.1, 0.9, { emissive: C.oxide, emissiveIntensity: 0.18 }));
+  mouth.position.set(1.15, -0.56, 0.265);
+
+  const coils = [];
+  for (let i = 0; i < 6; i++) {
+    const coil = ring(0.82 + i * 0.045, i % 2 ? C.bone : C.brass, 0.014);
+    coil.rotation.set(Math.PI / 2, 0.15 + i * 0.13, i * 0.24);
+    coils.push(coil);
+    machine.add(coil);
+  }
+
+  const printMarkers = [];
+  for (let i = 0; i < 12; i++) {
+    const marker = new THREE.Mesh(
+      new THREE.BoxGeometry(0.075, 0.035, 0.035),
+      mat(C.iron, 0.25, 0.62, { emissive: C.brass, emissiveIntensity: 0.01 })
+    );
+    marker.position.set(-0.66 + (i % 6) * 0.265, 1.36 - Math.floor(i / 6) * 0.14, 0.04);
+    machine.add(marker);
+    printMarkers.push(marker);
+  }
+
+  const captureMarkers = [];
+  for (let i = 0; i < 12; i++) {
+    const marker = new THREE.Mesh(
+      new THREE.SphereGeometry(0.042, 10, 8),
+      mat(C.iron, 0.25, 0.62, { emissive: C.bone, emissiveIntensity: 0.01 })
+    );
+    marker.position.set(-0.66 + (i % 6) * 0.265, -1.38 + Math.floor(i / 6) * 0.14, 0.04);
+    machine.add(marker);
+    captureMarkers.push(marker);
+  }
+
+  machine.add(shell, top, bottom, knot, spool, tape, furnace, mouth);
+  group.add(machine);
+  const targets = { printedCount: 0, capturedCount: 0, printCompletion: 0, captureDensity: 0, spent: false, openedDirector: false };
+
   animate.push((t) => {
-    knot.rotation.x = t * 0.46;
-    knot.rotation.y = -t * 0.35;
-    top.rotation.z = t * 0.08;
-    bottom.rotation.z = -t * 0.08;
+    const aftermath = targets.openedDirector;
+    const rate = aftermath ? 0.12 : 0.32 + targets.printCompletion * 0.42;
+    knot.rotation.x = t * rate;
+    knot.rotation.y = -t * (rate * 0.82);
+    top.rotation.z = t * (aftermath ? 0.025 : 0.06 + targets.printCompletion * 0.08);
+    bottom.rotation.z = -top.rotation.z;
+    spool.rotation.x = -t * (0.16 + targets.printCompletion * 0.72);
+    tape.scale.x += ((0.3 + targets.printCompletion * 0.7) - tape.scale.x) * 0.06;
+    tape.position.x = -0.7 + targets.printCompletion * 0.36;
+
+    coils.forEach((coil, index) => {
+      const compression = 1 - targets.captureDensity * (0.035 + index * 0.006);
+      const pulse = aftermath ? 0 : Math.sin(t * (0.35 + index * 0.04) + index) * 0.012 * targets.captureDensity;
+      coil.scale.setScalar(compression + pulse);
+    });
+
+    const heatPulse = targets.spent ? 0.08 : Math.abs(Math.sin(t * 2.4)) * (0.1 + targets.printCompletion * 0.36);
+    furnaceMaterial.emissiveIntensity = aftermath ? 0.03 : 0.08 + heatPulse;
+    mouth.material.emissiveIntensity = aftermath ? 0.05 : 0.18 + heatPulse * 0.8;
   });
+
+  return {
+    applyState(projection) {
+      targets.printedCount = projection.printedCount;
+      targets.capturedCount = projection.capturedCount;
+      targets.printCompletion = projection.printCompletion;
+      targets.captureDensity = projection.captureDensity;
+      targets.spent = projection.spent;
+      targets.openedDirector = projection.openedDirector;
+
+      const aftermathColor = projection.openedDirector ? C.green : C.brass;
+      shellMaterial.emissive.setHex(projection.openedDirector ? C.green : 0x000000);
+      shellMaterial.emissiveIntensity = projection.openedDirector ? 0.08 : 0;
+      knotMaterial.color.setHex(projection.openedDirector ? C.green : C.oxide);
+      knotMaterial.emissive.setHex(projection.openedDirector ? C.green : C.oxide);
+      knotMaterial.emissiveIntensity = projection.openedDirector ? 0.32 : 0.13 + projection.captureDensity * 0.16;
+      tapeMaterial.emissive.setHex(aftermathColor);
+      tapeMaterial.emissiveIntensity = projection.printedCount > 0 ? 0.08 : 0.01;
+
+      printMarkers.forEach((marker, index) => {
+        const active = index < projection.printedCount;
+        marker.material.color.setHex(active ? (projection.openedDirector ? C.green : C.brass) : C.iron);
+        marker.material.emissive.setHex(aftermathColor);
+        marker.material.emissiveIntensity = active ? 0.48 : 0.01;
+      });
+      captureMarkers.forEach((marker, index) => {
+        const active = index < projection.capturedCount;
+        marker.material.color.setHex(active ? (projection.openedDirector ? C.green : C.bone) : C.iron);
+        marker.material.emissive.setHex(projection.openedDirector ? C.green : C.bone);
+        marker.material.emissiveIntensity = active ? 0.42 : 0.01;
+      });
+      coils.forEach((coil) => {
+        coil.material.color.setHex(projection.openedDirector ? C.green : C.brass);
+      });
+    }
+  };
 }
 
 function addSundial(group, animate) {
@@ -649,15 +640,7 @@ function addSundial(group, animate) {
   });
 }
 
-const builders = {
-  deimos: addDeimos,
-  chronostat: addChronostat,
-  atlas: addAtlas,
-  archive: addArchive,
-  oracle: addOracle,
-  verboten: addVerboten,
-  sundial: addSundial
-};
+const builders = { deimos: addDeimos, chronostat: addChronostat, atlas: addAtlas, archive: addArchive, oracle: addOracle, verboten: addVerboten, sundial: addSundial };
 
 function disposeObject(root) {
   root.traverse((obj) => {
@@ -699,11 +682,9 @@ function createHost(root, id) {
     '<div class="machine-three-badge">3D INSTRUMENT VIEW</div>',
     '<div class="machine-three-status" role="status">INITIALIZING LOCAL 3D INSTRUMENT…</div>'
   ].join('');
-
   const title = root.querySelector('h2');
   if (title?.nextSibling) root.insertBefore(host, title.nextSibling);
   else root.prepend(host);
-
   const entry = { root, id, host };
   mounted.set(root, entry);
   entries.add(entry);
@@ -723,16 +704,12 @@ function ensureCanvas() {
   const canvas = document.createElement('canvas');
   canvas.className = 'machine-three-canvas';
   canvas.setAttribute('aria-hidden', 'true');
-
   runtime.onContextLost = (event) => {
     event.preventDefault();
     runtime.contextLost = true;
     runtime.renderer?.setAnimationLoop?.(null);
-    if (runtime.active) {
-      setStatus(runtime.active.entry, 'context-lost', '3D SIGNAL LOST — RESTORING CONTEXT…');
-    }
+    if (runtime.active) setStatus(runtime.active.entry, 'context-lost', '3D SIGNAL LOST — RESTORING CONTEXT…');
   };
-
   runtime.onContextRestored = () => {
     runtime.contextLost = false;
     if (runtime.active && runtime.renderer) {
@@ -740,7 +717,6 @@ function ensureCanvas() {
       runtime.renderer.setAnimationLoop(renderFrame);
     }
   };
-
   canvas.addEventListener('webglcontextlost', runtime.onContextLost, false);
   canvas.addEventListener('webglcontextrestored', runtime.onContextRestored, false);
   runtime.canvas = canvas;
@@ -750,15 +726,11 @@ function ensureCanvas() {
 function ensureRenderer() {
   if (runtime.renderer) return runtime.renderer;
   if (!THREE) throw new Error('Three.js module not loaded');
-  if (!window.WebGLRenderingContext && !window.WebGL2RenderingContext) {
-    throw new Error('WebGL is not available in this browser');
-  }
-
+  if (!window.WebGLRenderingContext && !window.WebGL2RenderingContext) throw new Error('WebGL is not available in this browser');
   const canvas = ensureCanvas();
   const attrs = { alpha: true, antialias: true, powerPreference: 'high-performance' };
   const context = canvas.getContext('webgl2', attrs) || canvas.getContext('webgl', attrs);
   if (!context) throw new Error('Unable to create a WebGL context');
-
   const renderer = new THREE.WebGLRenderer({ canvas, context, ...attrs });
   renderer.outputColorSpace = THREE.SRGBColorSpace;
   renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 1.75));
@@ -770,38 +742,24 @@ function createScene(id) {
   const scene = new THREE.Scene();
   scene.fog = new THREE.FogExp2(C.dark, 0.09);
   scene.add(new THREE.HemisphereLight(C.bone, 0x171913, 1.25));
-
   const key = new THREE.DirectionalLight(C.brass, 2.2);
   key.position.set(3, 4, 4);
   scene.add(key);
-
   const fill = new THREE.PointLight(C.green, 5, 8, 2);
   fill.position.set(-2.5, 1.1, -1.6);
   scene.add(fill);
-
   const grid = new THREE.GridHelper(8, 16, 0x514d3e, 0x2f3029);
   grid.position.y = -1.45;
   grid.material.transparent = true;
   grid.material.opacity = 0.24;
   scene.add(grid);
-
   const group = new THREE.Group();
   scene.add(group);
   const animators = [];
   const controller = builders[id](group, animators) || null;
-
   const camera = new THREE.PerspectiveCamera(38, 1, 0.1, 50);
   camera.position.set(0, 0.2, 4.8);
-
-  return {
-    scene,
-    camera,
-    animators,
-    controller,
-    projectionKey: null,
-    pointer: new THREE.Vector2(),
-    reducedMotion: window.matchMedia?.('(prefers-reduced-motion: reduce)') || { matches: false }
-  };
+  return { scene, camera, animators, controller, projectionKey: null, pointer: new THREE.Vector2(), reducedMotion: window.matchMedia?.('(prefers-reduced-motion: reduce)') || { matches: false } };
 }
 
 function resizeActive() {
@@ -819,71 +777,39 @@ function applyCanonicalProjection(active = runtime.active) {
   if (!active?.controller?.applyState) return;
   const store = window.__impossibleStore;
   if (!store?.get) return;
-
   const projection = projectMachineState(active.entry.id, store.get());
   const key = JSON.stringify(projection);
   if (key === active.projectionKey) return;
   active.projectionKey = key;
   active.controller.applyState(projection);
   active.entry.host.dataset.machinePhase = projection.phase || 'idle';
-  if (projection.orientationIndex != null) {
-    active.entry.host.dataset.orientationIndex = String(projection.orientationIndex);
-  }
-  if (projection.safeOpen != null) {
-    active.entry.host.dataset.safeOpen = projection.safeOpen ? 'true' : 'false';
-  }
-  if (projection.roundTrips != null) {
-    active.entry.host.dataset.roundTrips = String(projection.roundTrips);
-  }
-  if (projection.shift != null) {
-    active.entry.host.dataset.temporalShift = String(projection.shift);
-  }
-  if (projection.waitingForReply != null) {
-    active.entry.host.dataset.waitingForReply = projection.waitingForReply ? 'true' : 'false';
-  }
-  if (projection.unlockedVerb != null) {
-    active.entry.host.dataset.verbotenUnlocked = projection.unlockedVerb ? 'true' : 'false';
-  }
-  if (projection.strokeCount != null) {
-    active.entry.host.dataset.strokeCount = String(projection.strokeCount);
-  }
-  if (projection.lockedShapeCount != null) {
-    active.entry.host.dataset.lockedShapes = String(projection.lockedShapeCount);
-  }
-  if (projection.openedSundial != null) {
-    active.entry.host.dataset.sundialOpened = projection.openedSundial ? 'true' : 'false';
-  }
-  if (projection.revealedCount != null) {
-    active.entry.host.dataset.revealedCount = String(projection.revealedCount);
-  }
-  if (projection.solved != null && active.entry.id === 'archive') {
-    active.entry.host.dataset.archiveSolved = projection.solved ? 'true' : 'false';
-  }
-  if (projection.placedCount != null) {
-    active.entry.host.dataset.placedCount = String(projection.placedCount);
-  }
-  if (projection.zeroReadingCount != null) {
-    active.entry.host.dataset.zeroReadings = String(projection.zeroReadingCount);
-  }
-  if (projection.ruleLearned != null && active.entry.id === 'oracle') {
-    active.entry.host.dataset.oracleRuleLearned = projection.ruleLearned ? 'true' : 'false';
-  }
-  if (projection.openedDirector != null && active.entry.id === 'oracle') {
-    active.entry.host.dataset.oracleDirectorOpened = projection.openedDirector ? 'true' : 'false';
-  }
+  if (projection.orientationIndex != null) active.entry.host.dataset.orientationIndex = String(projection.orientationIndex);
+  if (projection.safeOpen != null) active.entry.host.dataset.safeOpen = projection.safeOpen ? 'true' : 'false';
+  if (projection.roundTrips != null) active.entry.host.dataset.roundTrips = String(projection.roundTrips);
+  if (projection.shift != null) active.entry.host.dataset.temporalShift = String(projection.shift);
+  if (projection.waitingForReply != null) active.entry.host.dataset.waitingForReply = projection.waitingForReply ? 'true' : 'false';
+  if (projection.unlockedVerb != null) active.entry.host.dataset.verbotenUnlocked = projection.unlockedVerb ? 'true' : 'false';
+  if (projection.strokeCount != null) active.entry.host.dataset.strokeCount = String(projection.strokeCount);
+  if (projection.lockedShapeCount != null) active.entry.host.dataset.lockedShapes = String(projection.lockedShapeCount);
+  if (projection.openedSundial != null) active.entry.host.dataset.sundialOpened = projection.openedSundial ? 'true' : 'false';
+  if (projection.revealedCount != null) active.entry.host.dataset.revealedCount = String(projection.revealedCount);
+  if (projection.solved != null && active.entry.id === 'archive') active.entry.host.dataset.archiveSolved = projection.solved ? 'true' : 'false';
+  if (projection.placedCount != null) active.entry.host.dataset.placedCount = String(projection.placedCount);
+  if (projection.zeroReadingCount != null) active.entry.host.dataset.zeroReadings = String(projection.zeroReadingCount);
+  if (projection.ruleLearned != null && active.entry.id === 'oracle') active.entry.host.dataset.oracleRuleLearned = projection.ruleLearned ? 'true' : 'false';
+  if (projection.openedDirector != null && active.entry.id === 'oracle') active.entry.host.dataset.oracleDirectorOpened = projection.openedDirector ? 'true' : 'false';
+  if (projection.printedCount != null) active.entry.host.dataset.printedCount = String(projection.printedCount);
+  if (projection.capturedCount != null) active.entry.host.dataset.capturedCount = String(projection.capturedCount);
+  if (projection.spent != null) active.entry.host.dataset.verbotenSpent = projection.spent ? 'true' : 'false';
+  if (projection.openedDirector != null && active.entry.id === 'verboten') active.entry.host.dataset.verbotenDirectorOpened = projection.openedDirector ? 'true' : 'false';
 }
 
 function renderFrame(time = 0) {
   const active = runtime.active;
   if (!active || !runtime.renderer || runtime.contextLost) return;
-  if (!active.entry.root.isConnected) {
-    deactivateActive();
-    return;
-  }
+  if (!active.entry.root.isConnected) { deactivateActive(); return; }
   if (document.hidden) return;
-
   applyCanonicalProjection(active);
-
   const speed = active.reducedMotion.matches ? 0.12 : 1;
   const t = (time / 1000) * speed;
   active.animators.forEach((animate) => animate(t));
@@ -909,40 +835,27 @@ function deactivateActive() {
 function activate(entry) {
   if (!entry?.root?.isConnected) return;
   if (runtime.active?.entry === entry && runtime.renderer) return;
-  if (runtime.unavailableReason) {
-    setStatus(entry, 'unavailable', '3D VIEW UNAVAILABLE — INSTRUMENT CONTROLS REMAIN ACTIVE');
-    return;
-  }
-  if (!THREE) {
-    setStatus(entry, 'loading', 'INITIALIZING LOCAL 3D INSTRUMENT…');
-    return;
-  }
-
+  if (runtime.unavailableReason) { setStatus(entry, 'unavailable', '3D VIEW UNAVAILABLE — INSTRUMENT CONTROLS REMAIN ACTIVE'); return; }
+  if (!THREE) { setStatus(entry, 'loading', 'INITIALIZING LOCAL 3D INSTRUMENT…'); return; }
   deactivateActive();
-
   let renderer;
-  try {
-    renderer = ensureRenderer();
-  } catch (error) {
+  try { renderer = ensureRenderer(); }
+  catch (error) {
     runtime.unavailableReason = error instanceof Error ? error.message : String(error);
     setStatus(entry, 'unavailable', '3D VIEW UNAVAILABLE — INSTRUMENT CONTROLS REMAIN ACTIVE');
     return;
   }
-
   const canvas = ensureCanvas();
   const statusEl = entry.host.querySelector('.machine-three-status');
   entry.host.insertBefore(canvas, statusEl || null);
-
   let sceneState;
-  try {
-    sceneState = createScene(entry.id);
-  } catch (error) {
+  try { sceneState = createScene(entry.id); }
+  catch (error) {
     runtime.unavailableReason = error instanceof Error ? error.message : String(error);
     canvas.remove();
     setStatus(entry, 'unavailable', '3D VIEW UNAVAILABLE — INSTRUMENT CONTROLS REMAIN ACTIVE');
     return;
   }
-
   const onMove = (event) => {
     const rect = entry.host.getBoundingClientRect();
     if (!rect.width || !rect.height) return;
@@ -952,7 +865,6 @@ function activate(entry) {
   const onLeave = () => sceneState.pointer.set(0, 0);
   entry.host.addEventListener('pointermove', onMove, { passive: true });
   entry.host.addEventListener('pointerleave', onLeave, { passive: true });
-
   let resizeObserver = null;
   let onWindowResize = null;
   if (window.ResizeObserver) {
@@ -962,16 +874,7 @@ function activate(entry) {
     onWindowResize = resizeActive;
     window.addEventListener('resize', onWindowResize, { passive: true });
   }
-
-  runtime.active = {
-    entry,
-    ...sceneState,
-    onMove,
-    onLeave,
-    resizeObserver,
-    onWindowResize
-  };
-
+  runtime.active = { entry, ...sceneState, onMove, onLeave, resizeObserver, onWindowResize };
   resizeActive();
   applyCanonicalProjection(runtime.active);
   setStatus(entry, 'ready', '3D INSTRUMENT ONLINE');
@@ -979,9 +882,7 @@ function activate(entry) {
 }
 
 function pruneEntries() {
-  for (const entry of entries) {
-    if (!entry.root.isConnected) entries.delete(entry);
-  }
+  for (const entry of entries) if (!entry.root.isConnected) entries.delete(entry);
 }
 
 function scan(scope = document) {
@@ -998,9 +899,7 @@ function scan(scope = document) {
 
 function markUnavailable() {
   pruneEntries();
-  for (const entry of entries) {
-    setStatus(entry, 'unavailable', '3D VIEW UNAVAILABLE — INSTRUMENT CONTROLS REMAIN ACTIVE');
-  }
+  for (const entry of entries) setStatus(entry, 'unavailable', '3D VIEW UNAVAILABLE — INSTRUMENT CONTROLS REMAIN ACTIVE');
 }
 
 async function loadThree() {
@@ -1038,26 +937,18 @@ function boot() {
   runtime.started = true;
   injectStyles();
   scan();
-
   if (window.MutationObserver) {
     runtime.observer = new window.MutationObserver((records) => {
-      for (const record of records) {
-        for (const node of record.addedNodes) {
-          if (node instanceof window.Element) scan(node);
-        }
-      }
+      for (const record of records) for (const node of record.addedNodes) if (node instanceof window.Element) scan(node);
     });
     runtime.observer.observe(document.body, { childList: true, subtree: true });
   }
-
   runtime.onPageHide = shutdown;
   window.addEventListener('pagehide', runtime.onPageHide, { once: true });
   void loadThree();
 }
 
-export function startMachineThreeEnhancement() {
-  boot();
-}
+export function startMachineThreeEnhancement() { boot(); }
 
 export function getThreeRuntimeStatus() {
   pruneEntries();
@@ -1073,8 +964,5 @@ export function getThreeRuntimeStatus() {
   };
 }
 
-if (document.readyState === 'loading') {
-  document.addEventListener('DOMContentLoaded', boot, { once: true });
-} else {
-  boot();
-}
+if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', boot, { once: true });
+else boot();

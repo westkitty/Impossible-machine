@@ -9,6 +9,7 @@ const CHRONOSTAT_PHASE_COUNT = 7;
 const ATLAS_MAX_PATH_POINTS = 48;
 const ARCHIVE_STAFF_IDS = ['harker', 'pell', 'doss', 'mora', 'vance', 'yuen'];
 const ORACLE_TOKEN_IDS = ['ring', 'specs', 'photo', 'plumb', 'pulse', 'compass', 'glove', 'journal', 'cinder'];
+const VERBOTEN_MAX_PRINTS = 12;
 
 function boundedInteger(value, min, max, fallback = min) {
   if (!Number.isInteger(value)) return fallback;
@@ -62,6 +63,17 @@ function projectKnownIds(value, allowedIds) {
     }
   }
   return Object.freeze(projected);
+}
+
+function countFiniteCaptureTimestamps(value, max) {
+  if (!value || typeof value !== 'object' || Array.isArray(value)) return 0;
+  let count = 0;
+  for (const key of Object.keys(value)) {
+    if (typeof key !== 'string' || !Number.isFinite(value[key])) continue;
+    count += 1;
+    if (count >= max) return max;
+  }
+  return count;
 }
 
 export function projectDeimosState(state) {
@@ -201,6 +213,25 @@ export function projectOracleState(state) {
   });
 }
 
+export function projectVerbotenState(state) {
+  const machine = state?.machines?.verboten || {};
+  const printedCount = Math.min(VERBOTEN_MAX_PRINTS, arrayLength(machine.wordsPrinted));
+  const capturedCount = countFiniteCaptureTimestamps(machine.captures, VERBOTEN_MAX_PRINTS);
+  const openedDirector = machine.openedDirector === true;
+  const spent = printedCount >= VERBOTEN_MAX_PRINTS;
+
+  return Object.freeze({
+    machineId: 'verboten',
+    printedCount,
+    capturedCount,
+    printCompletion: printedCount / VERBOTEN_MAX_PRINTS,
+    captureDensity: capturedCount / VERBOTEN_MAX_PRINTS,
+    spent,
+    openedDirector,
+    phase: openedDirector ? 'aftermath' : printedCount > 0 ? 'engaged' : 'dormant'
+  });
+}
+
 export function projectMachineState(machineId, state) {
   switch (machineId) {
     case 'deimos':
@@ -213,6 +244,8 @@ export function projectMachineState(machineId, state) {
       return projectArchiveState(state);
     case 'oracle':
       return projectOracleState(state);
+    case 'verboten':
+      return projectVerbotenState(state);
     default:
       return Object.freeze({ machineId, phase: 'idle' });
   }
