@@ -332,24 +332,128 @@ function addAtlas(group, animate) {
 
 function addArchive(group, animate) {
   const cabinet = new THREE.Group();
-  cabinet.add(new THREE.Mesh(new THREE.BoxGeometry(2.1, 2.15, 0.72), mat(C.iron, 0.3, 0.78)));
+  const cabinetMaterial = mat(C.iron, 0.34, 0.72, { emissive: 0x000000, emissiveIntensity: 0 });
+  const cabinetBody = new THREE.Mesh(new THREE.BoxGeometry(2.35, 2.05, 0.72), cabinetMaterial);
+  cabinet.add(cabinetBody);
+
+  const unsolvedPositions = [
+    [-0.72, 0.52],
+    [0.04, 0.7],
+    [0.73, 0.43],
+    [-0.58, -0.34],
+    [0.16, -0.55],
+    [0.71, -0.26]
+  ];
+  const solvedPositions = [
+    [-0.7, 0.48],
+    [0, 0.48],
+    [0.7, 0.48],
+    [-0.7, -0.28],
+    [0, -0.28],
+    [0.7, -0.28]
+  ];
+
   const drawers = [];
-  for (let y = 0; y < 4; y++) {
-    for (let x = 0; x < 3; x++) {
-      const drawer = new THREE.Mesh(
-        new THREE.BoxGeometry(0.55, 0.36, 0.12),
-        mat(y === 1 && x === 2 ? C.oxide : 0x25281f, 0.28, 0.72)
-      );
-      drawer.position.set((x - 1) * 0.65, 0.72 - y * 0.47, 0.41);
-      cabinet.add(drawer);
-      drawers.push(drawer);
-    }
+  const progressPins = [];
+  for (let i = 0; i < 6; i++) {
+    const drawerGroup = new THREE.Group();
+    const [x, y] = unsolvedPositions[i];
+    drawerGroup.position.set(x, y, 0.38);
+
+    const drawerMaterial = mat(0x25281f, 0.32, 0.68, {
+      emissive: C.brass,
+      emissiveIntensity: 0.01
+    });
+    const drawer = new THREE.Mesh(new THREE.BoxGeometry(0.56, 0.4, 0.2), drawerMaterial);
+    const labelPlate = new THREE.Mesh(
+      new THREE.BoxGeometry(0.28, 0.12, 0.025),
+      mat(C.brass, 0.62, 0.32, { emissive: C.brass, emissiveIntensity: 0.01 })
+    );
+    labelPlate.position.z = 0.115;
+    const handle = new THREE.Mesh(new THREE.BoxGeometry(0.18, 0.035, 0.05), mat(C.bone, 0.52, 0.42));
+    handle.position.set(0, -0.1, 0.13);
+    drawerGroup.add(drawer, labelPlate, handle);
+    cabinet.add(drawerGroup);
+    drawers.push({ group: drawerGroup, drawer, labelPlate, base: unsolvedPositions[i], solved: solvedPositions[i] });
+
+    const pinMaterial = mat(C.iron, 0.28, 0.6, { emissive: C.brass, emissiveIntensity: 0.01 });
+    const pin = new THREE.Mesh(new THREE.SphereGeometry(0.045, 12, 8), pinMaterial);
+    pin.position.set(-0.48 + i * 0.19, 1.18, 0.12);
+    cabinet.add(pin);
+    progressPins.push(pin);
   }
-  group.add(cabinet);
-  animate.push((t) => {
-    cabinet.rotation.y = Math.sin(t * 0.22) * 0.13;
-    drawers[5].position.z = 0.41 + (Math.sin(t * 0.8) * 0.5 + 0.5) * 0.35;
+
+  const alignmentRailMaterial = mat(C.brass, 0.58, 0.36, {
+    emissive: C.green,
+    emissiveIntensity: 0
   });
+  const alignmentRail = new THREE.Mesh(new THREE.BoxGeometry(1.48, 0.045, 0.055), alignmentRailMaterial);
+  alignmentRail.position.set(0, -0.98, 0.39);
+  cabinet.add(alignmentRail);
+
+  group.add(cabinet);
+
+  const targets = {
+    revealedCount: 0,
+    completion: 0,
+    allRevealed: false,
+    solved: false
+  };
+
+  animate.push((t) => {
+    const drift = targets.solved ? 0 : Math.sin(t * 0.22) * (0.045 + targets.completion * 0.035);
+    cabinet.rotation.y += (drift - cabinet.rotation.y) * 0.04;
+
+    drawers.forEach((entry, index) => {
+      const destination = targets.solved ? entry.solved : entry.base;
+      entry.group.position.x += (destination[0] - entry.group.position.x) * 0.08;
+      entry.group.position.y += (destination[1] - entry.group.position.y) * 0.08;
+
+      const revealed = index < targets.revealedCount;
+      const targetZ = targets.solved ? 0.38 : revealed ? 0.62 + index * 0.012 : 0.38;
+      entry.group.position.z += (targetZ - entry.group.position.z) * 0.11;
+
+      if (!targets.solved && revealed) {
+        entry.group.rotation.z = Math.sin(t * (0.31 + index * 0.025) + index) * 0.018;
+      } else {
+        entry.group.rotation.z += (0 - entry.group.rotation.z) * 0.1;
+      }
+    });
+
+    const railPulse = targets.allRevealed && !targets.solved ? 0.08 + Math.abs(Math.sin(t * 1.1)) * 0.1 : 0;
+    alignmentRailMaterial.emissiveIntensity = targets.solved ? 0.5 : railPulse;
+  });
+
+  return {
+    applyState(projection) {
+      targets.revealedCount = projection.revealedCount;
+      targets.completion = projection.completion;
+      targets.allRevealed = projection.allRevealed;
+      targets.solved = projection.solved;
+
+      cabinetMaterial.emissive.setHex(projection.solved ? C.green : 0x000000);
+      cabinetMaterial.emissiveIntensity = projection.solved ? 0.055 : 0;
+      alignmentRailMaterial.color.setHex(projection.solved ? C.green : C.brass);
+      alignmentRailMaterial.emissive.setHex(projection.solved ? C.green : C.brass);
+
+      drawers.forEach((entry, index) => {
+        const revealed = index < projection.revealedCount;
+        entry.drawer.material.color.setHex(revealed ? 0x303329 : 0x22251e);
+        entry.drawer.material.emissive.setHex(projection.solved ? C.green : C.brass);
+        entry.drawer.material.emissiveIntensity = revealed ? (projection.solved ? 0.14 : 0.06) : 0.01;
+        entry.labelPlate.material.color.setHex(revealed ? (projection.solved ? C.green : C.brass) : C.iron);
+        entry.labelPlate.material.emissive.setHex(projection.solved ? C.green : C.brass);
+        entry.labelPlate.material.emissiveIntensity = revealed ? (projection.solved ? 0.6 : 0.16) : 0.01;
+      });
+
+      progressPins.forEach((pin, index) => {
+        const active = index < projection.revealedCount;
+        pin.material.color.setHex(active ? (projection.solved ? C.green : C.brass) : C.iron);
+        pin.material.emissive.setHex(projection.solved ? C.green : C.brass);
+        pin.material.emissiveIntensity = active ? 0.58 : 0.01;
+      });
+    }
+  };
 }
 
 function addOracle(group, animate) {
@@ -622,6 +726,12 @@ function applyCanonicalProjection(active = runtime.active) {
   }
   if (projection.openedSundial != null) {
     active.entry.host.dataset.sundialOpened = projection.openedSundial ? 'true' : 'false';
+  }
+  if (projection.revealedCount != null) {
+    active.entry.host.dataset.revealedCount = String(projection.revealedCount);
+  }
+  if (projection.solved != null && active.entry.id === 'archive') {
+    active.entry.host.dataset.archiveSolved = projection.solved ? 'true' : 'false';
   }
 }
 

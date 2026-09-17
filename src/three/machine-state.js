@@ -7,6 +7,7 @@ const QUARTER_TURN = Math.PI / 4;
 const CHRONOSTAT_MAX_ROUND_TRIPS = 6;
 const CHRONOSTAT_PHASE_COUNT = 7;
 const ATLAS_MAX_PATH_POINTS = 48;
+const ARCHIVE_STAFF_IDS = ['harker', 'pell', 'doss', 'mora', 'vance', 'yuen'];
 
 function boundedInteger(value, min, max, fallback = min) {
   if (!Number.isInteger(value)) return fallback;
@@ -41,6 +42,20 @@ function sampleAtlasPath(points, maxPoints = ATLAS_MAX_PATH_POINTS) {
     sampled.push(freezePoint(valid[sourceIndex]));
   }
   return Object.freeze(sampled);
+}
+
+function projectKnownIds(value, allowedIds) {
+  const allowed = new Set(allowedIds);
+  const seen = new Set();
+  const projected = [];
+  if (Array.isArray(value)) {
+    for (const id of value) {
+      if (typeof id !== 'string' || !allowed.has(id) || seen.has(id)) continue;
+      seen.add(id);
+      projected.push(id);
+    }
+  }
+  return Object.freeze(projected);
 }
 
 export function projectDeimosState(state) {
@@ -120,6 +135,23 @@ export function projectAtlasState(state) {
   });
 }
 
+export function projectArchiveState(state) {
+  const machine = state?.machines?.archive || {};
+  const revealedIds = projectKnownIds(machine.revealed, ARCHIVE_STAFF_IDS);
+  const revealedCount = revealedIds.length;
+  const solved = machine.solved === true;
+
+  return Object.freeze({
+    machineId: 'archive',
+    revealedIds,
+    revealedCount,
+    allRevealed: revealedCount === ARCHIVE_STAFF_IDS.length,
+    completion: revealedCount / ARCHIVE_STAFF_IDS.length,
+    solved,
+    phase: solved ? 'aftermath' : revealedCount > 0 ? 'engaged' : 'dormant'
+  });
+}
+
 export function projectMachineState(machineId, state) {
   switch (machineId) {
     case 'deimos':
@@ -128,6 +160,8 @@ export function projectMachineState(machineId, state) {
       return projectChronostatState(state);
     case 'atlas':
       return projectAtlasState(state);
+    case 'archive':
+      return projectArchiveState(state);
     default:
       return Object.freeze({ machineId, phase: 'idle' });
   }

@@ -1,5 +1,6 @@
 import { defaultState } from '../src/state/store.js';
 import {
+  projectArchiveState,
   projectAtlasState,
   projectChronostatState,
   projectDeimosState,
@@ -128,6 +129,38 @@ assert(atlasSolved.phase === 'aftermath', 'ATLAS Sundial unlock projects as afte
 assert(Object.isFrozen(atlasSolved), 'ATLAS projection object is immutable');
 assert(atlasBefore !== JSON.stringify(atlas), 'ATLAS test fixture itself changed as expected');
 
+// ARCHIVE
+const archive = defaultState();
+const archiveBefore = JSON.stringify(archive);
+const archiveInitial = projectArchiveState(archive);
+assert(archiveInitial.revealedCount === 0, 'ARCHIVE begins with no projected identities');
+assert(archiveInitial.completion === 0, 'ARCHIVE begins at zero physical completion');
+assert(archiveInitial.solved === false, 'ARCHIVE begins unsolved');
+assert(archiveInitial.phase === 'dormant', 'ARCHIVE initial phase is dormant');
+
+archive.machines.archive.revealed.push('harker', 'pell', 'unknown', 'pell');
+const archivePartial = projectArchiveState(archive);
+assert(archivePartial.revealedCount === 2, 'ARCHIVE projector keeps only unique known revealed identities');
+assert(archivePartial.revealedIds.join(',') === 'harker,pell', 'ARCHIVE preserves canonical reveal identity order without inventing drag order');
+assert(Math.abs(archivePartial.completion - (2 / 6)) < 1e-12, 'ARCHIVE completion reflects revealed identity count');
+assert(archivePartial.allRevealed === false, 'ARCHIVE partial reveal does not project all-revealed state');
+assert(archivePartial.phase === 'engaged', 'ARCHIVE partial reveal projects as engaged');
+assert(Object.isFrozen(archivePartial.revealedIds), 'ARCHIVE revealed identity projection is immutable');
+
+archive.machines.archive.revealed = ['harker', 'pell', 'doss', 'mora', 'vance', 'yuen'];
+const archiveAll = projectArchiveState(archive);
+assert(archiveAll.revealedCount === 6, 'ARCHIVE all six canonical identities project as revealed');
+assert(archiveAll.allRevealed === true, 'ARCHIVE projects all-revealed state independently of solved order');
+assert(archiveAll.completion === 1, 'ARCHIVE all six identities project full reveal completion');
+assert(archiveAll.solved === false, 'ARCHIVE all-revealed does not falsely imply the ordering puzzle is solved');
+
+archive.machines.archive.solved = true;
+const archiveSolved = projectMachineState('archive', archive);
+assert(archiveSolved.solved === true, 'ARCHIVE canonical solved state projects into Three.js state');
+assert(archiveSolved.phase === 'aftermath', 'ARCHIVE solved state projects as aftermath');
+assert(Object.isFrozen(archiveSolved), 'ARCHIVE projection object is immutable');
+assert(archiveBefore !== JSON.stringify(archive), 'ARCHIVE test fixture itself changed as expected');
+
 const unknown = projectMachineState('unknown-machine', base);
 assert(unknown.phase === 'idle', 'unknown machines receive inert projection state');
 
@@ -136,6 +169,7 @@ const freshBefore = JSON.stringify(fresh);
 projectDeimosState(fresh);
 projectChronostatState(fresh);
 projectAtlasState(fresh);
+projectArchiveState(fresh);
 assert(JSON.stringify(fresh) === freshBefore, 'machine projections do not mutate canonical state');
 assert(chronBefore !== JSON.stringify(chron), 'CHRONOSTAT test fixture itself changed as expected');
 
