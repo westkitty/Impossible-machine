@@ -128,6 +128,37 @@ Physical interpretation:
 
 The physical projection deliberately does **not** reveal future-message text. It exposes timing, drift, progress, and unlock state already earned by the player without leaking the puzzle solution.
 
+## ATLAS reference projection
+
+`projectAtlasState(state)` is the third state-driven adapter. The canonical shape-recognition heuristic remains entirely in `src/machines/atlas.js`; Three.js only receives the resulting state and a bounded copy of player-authored geometry.
+
+Canonical inputs:
+
+- `state.machines.atlas.strokes`
+- `state.machines.atlas.lockedShapes`
+- `state.machines.atlas.openedSundial`
+
+Derived presentation outputs:
+
+- `strokeCount` — canonical stroke inventory size
+- `draftStrokeCount` — unlocked strokes still subject to the normal erase lifecycle
+- `lockedStrokeCount` — locked strokes already preserved by gameplay
+- `lockedShapeCount` — canonical lock count, bounded for presentation safety
+- `latestLockedPath` — an immutable, normalized copy of the latest locked stroke sampled to at most 48 points
+- `topologyStrength` — normalized visual intensity derived from locked-shape count
+- `openedSundial` — canonical door-unlock result from the existing recognition rule
+- `phase` — `dormant`, `engaged`, or `aftermath`
+
+Physical interpretation:
+
+- the latest locked player stroke is wrapped onto the 3D globe as a literal false coastline/topological scar;
+- locked-shape progress activates increasingly incompatible orbital/topology rings;
+- draft activity changes the roaming survey marker without making draft geometry permanent;
+- the canonical Sundial unlock stabilizes the apparatus and permanently changes its visual state;
+- Three.js never evaluates whether a stroke qualifies for the Sundial. It only consumes `openedSundial` after the canonical machine rule has decided it.
+
+This is the first machine where authored player geometry crosses into the 3D presentation. The projection therefore bounds point count and copies/clamps coordinates before rendering so arbitrary stroke size cannot become an unbounded per-frame payload.
+
 ## Future machine adapters
 
 Every future machine must follow the same direction:
