@@ -18,6 +18,9 @@ import {
 
 function init() {
   const store = createStore(defaultState());
+  // Read-only integration handle for presentation systems such as Three.js.
+  // Canonical mutations still flow through the store and machine commands.
+  window.__impossibleStore = store;
 
   // Seed oracle inventory
   store.set(s => {
