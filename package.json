@@ -1,0 +1,14 @@
+{
+  "name": "department-of-impossible-machines",
+  "version": "1.0.0",
+  "private": true,
+  "description": "An interactive browser mystery: seven impossible machines in an abandoned government laboratory.",
+  "type": "module",
+  "scripts": {
+    "start": "node server/serve.mjs",
+    "serve": "node server/serve.mjs",
+    "qa:setup": "node qa/setup.mjs",
+    "qa": "node qa/run.mjs",
+    "qa:browser": "node qa/browser.mjs"
+  }
+}
