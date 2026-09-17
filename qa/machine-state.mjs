@@ -4,7 +4,8 @@ import {
   projectAtlasState,
   projectChronostatState,
   projectDeimosState,
-  projectMachineState
+  projectMachineState,
+  projectOracleState
 } from '../src/three/machine-state.js';
 
 const failures = [];
@@ -161,6 +162,49 @@ assert(archiveSolved.phase === 'aftermath', 'ARCHIVE solved state projects as af
 assert(Object.isFrozen(archiveSolved), 'ARCHIVE projection object is immutable');
 assert(archiveBefore !== JSON.stringify(archive), 'ARCHIVE test fixture itself changed as expected');
 
+// ORACLE
+const oracle = defaultState();
+const oracleBefore = JSON.stringify(oracle);
+const oracleInitial = projectOracleState(oracle);
+assert(oracleInitial.placedCount === 0, 'ORACLE begins with no projected objects on the scale');
+assert(oracleInitial.readingCount === 0, 'ORACLE begins with no projected readings');
+assert(oracleInitial.balanceSignal === 0, 'ORACLE begins with a neutral physical balance signal');
+assert(oracleInitial.phase === 'dormant', 'ORACLE initial phase is dormant');
+
+oracle.machines.oracle.placed = ['ring', 'pulse', 'cinder', 'unknown', 'ring'];
+oracle.machines.oracle.readings = {
+  ring: 25,
+  pulse: -50,
+  cinder: 0,
+  unknown: 999,
+  specs: Number.NaN
+};
+const oracleReadings = projectOracleState(oracle);
+assert(oracleReadings.placedIds.join(',') === 'ring,pulse,cinder', 'ORACLE projects only unique known placed IDs');
+assert(oracleReadings.placedCount === 3, 'ORACLE placed count follows canonical placed IDs');
+assert(oracleReadings.readingCount === 3, 'ORACLE counts only finite readings for placed IDs');
+assert(oracleReadings.positiveReadingCount === 1, 'ORACLE projects positive reading count');
+assert(oracleReadings.negativeReadingCount === 1, 'ORACLE projects negative reading count');
+assert(oracleReadings.zeroReadingCount === 1, 'ORACLE projects zero reading count');
+assert(Math.abs(oracleReadings.balanceSignal - (-0.25 / 3)) < 1e-12, 'ORACLE derives a bounded physical balance signal from stored readings only');
+assert(oracleReadings.readingEntries[0].polarity === 'positive', 'ORACLE reading entry preserves positive polarity');
+assert(oracleReadings.readingEntries[1].polarity === 'negative', 'ORACLE reading entry preserves negative polarity');
+assert(oracleReadings.readingEntries[2].polarity === 'zero', 'ORACLE reading entry preserves zero polarity');
+assert(Object.isFrozen(oracleReadings.placedIds), 'ORACLE placed-ID projection is immutable');
+assert(Object.isFrozen(oracleReadings.readingEntries), 'ORACLE reading-entry array is immutable');
+assert(Object.isFrozen(oracleReadings.readingEntries[0]), 'ORACLE individual reading entries are immutable');
+
+oracle.discoveries.oracle_inverse = true;
+oracle.discoveries.oracle_significance = true;
+oracle.machines.oracle.openedDirector = true;
+const oracleSolved = projectMachineState('oracle', oracle);
+assert(oracleSolved.inverseObserved === true, 'ORACLE canonical inverse discovery projects into Three.js state');
+assert(oracleSolved.ruleLearned === true, 'ORACLE canonical significance discovery projects into Three.js state');
+assert(oracleSolved.openedDirector === true, 'ORACLE canonical Director unlock projects into Three.js state');
+assert(oracleSolved.phase === 'aftermath', 'ORACLE Director unlock projects as aftermath');
+assert(Object.isFrozen(oracleSolved), 'ORACLE projection object is immutable');
+assert(oracleBefore !== JSON.stringify(oracle), 'ORACLE test fixture itself changed as expected');
+
 const unknown = projectMachineState('unknown-machine', base);
 assert(unknown.phase === 'idle', 'unknown machines receive inert projection state');
 
@@ -170,6 +214,7 @@ projectDeimosState(fresh);
 projectChronostatState(fresh);
 projectAtlasState(fresh);
 projectArchiveState(fresh);
+projectOracleState(fresh);
 assert(JSON.stringify(fresh) === freshBefore, 'machine projections do not mutate canonical state');
 assert(chronBefore !== JSON.stringify(chron), 'CHRONOSTAT test fixture itself changed as expected');
 

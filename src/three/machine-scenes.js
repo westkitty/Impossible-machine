@@ -457,30 +457,156 @@ function addArchive(group, animate) {
 }
 
 function addOracle(group, animate) {
-  const balance = new THREE.Group();
-  balance.add(new THREE.Mesh(new THREE.CylinderGeometry(0.06, 0.09, 2.1, 12), mat(C.brass, 0.75, 0.3)));
-  const beam = new THREE.Mesh(new THREE.BoxGeometry(2.55, 0.07, 0.07), mat(C.bone, 0.55, 0.38));
-  beam.position.y = 0.68;
-  balance.add(beam);
+  const pedestal = new THREE.Mesh(
+    new THREE.CylinderGeometry(0.13, 0.19, 2.05, 18),
+    mat(C.brass, 0.72, 0.32)
+  );
+  pedestal.position.y = -0.22;
+
+  const beamPivot = new THREE.Group();
+  beamPivot.position.y = 0.72;
+  const beamMaterial = mat(C.bone, 0.55, 0.38, { emissive: C.green, emissiveIntensity: 0 });
+  const beam = new THREE.Mesh(new THREE.BoxGeometry(2.55, 0.07, 0.07), beamMaterial);
+  beamPivot.add(beam);
+
+  const pans = [];
   for (const side of [-1, 1]) {
+    const panGroup = new THREE.Group();
+    panGroup.position.x = side * 1.0;
+    const chain = new THREE.Mesh(new THREE.BoxGeometry(0.025, 0.65, 0.025), mat(C.bone, 0.35, 0.5));
+    chain.position.y = -0.34;
     const pan = new THREE.Mesh(
       new THREE.CylinderGeometry(0.45, 0.3, 0.11, 28),
-      mat(side < 0 ? C.green : C.oxide, 0.25, 0.65)
+      mat(side < 0 ? C.green : C.oxide, 0.25, 0.65, { emissive: 0x000000, emissiveIntensity: 0 })
     );
-    pan.position.set(side * 1.0, -0.2, 0);
-    balance.add(pan);
+    pan.position.y = -0.72;
+    panGroup.add(chain, pan);
+    beamPivot.add(panGroup);
+    pans.push({ group: panGroup, pan });
   }
-  const eye = new THREE.Mesh(
-    new THREE.SphereGeometry(0.2, 18, 12),
-    mat(C.dark, 0.2, 0.35, { emissive: C.brass, emissiveIntensity: 0.16 })
-  );
-  eye.position.y = 1.18;
-  balance.add(eye);
-  group.add(balance);
+
+  const apertureMaterial = mat(C.dark, 0.2, 0.35, { emissive: C.brass, emissiveIntensity: 0.16 });
+  const aperture = new THREE.Mesh(new THREE.SphereGeometry(0.2, 18, 12), apertureMaterial);
+  aperture.position.y = 1.2;
+  const inverseHalo = ring(0.34, C.oxide, 0.018);
+  inverseHalo.position.y = 1.2;
+  inverseHalo.visible = false;
+
+  const tokenMarkers = [];
+  for (let i = 0; i < 9; i++) {
+    const tokenMaterial = mat(C.brass, 0.38, 0.5, { emissive: C.brass, emissiveIntensity: 0.03 });
+    const marker = new THREE.Mesh(
+      i % 3 === 0
+        ? new THREE.OctahedronGeometry(0.075, 0)
+        : i % 3 === 1
+          ? new THREE.BoxGeometry(0.11, 0.11, 0.11)
+          : new THREE.SphereGeometry(0.07, 12, 8),
+      tokenMaterial
+    );
+    marker.visible = false;
+    marker.position.set(0.78 + (i % 3) * 0.18, 0.1 + Math.floor(i / 3) * 0.12, -0.1 + (i % 2) * 0.18);
+    group.add(marker);
+    tokenMarkers.push(marker);
+  }
+
+  const zeroMarkers = [];
+  for (let i = 0; i < 3; i++) {
+    const marker = new THREE.Mesh(
+      new THREE.TorusGeometry(0.1 + i * 0.025, 0.012, 8, 24),
+      mat(C.bone, 0.18, 0.5, { emissive: C.green, emissiveIntensity: 0.02, transparent: true, opacity: 0.5 })
+    );
+    marker.rotation.x = Math.PI / 2;
+    marker.visible = false;
+    marker.position.set(-1.0 + i * 0.18, -0.04 + i * 0.09, 0.18);
+    group.add(marker);
+    zeroMarkers.push(marker);
+  }
+
+  group.add(pedestal, beamPivot, aperture, inverseHalo);
+
+  const targets = {
+    balanceSignal: 0,
+    placedCount: 0,
+    readings: [],
+    zeroReadingCount: 0,
+    negativeReadingCount: 0,
+    inverseObserved: false,
+    ruleLearned: false,
+    openedDirector: false
+  };
+
   animate.push((t) => {
-    balance.rotation.z = Math.sin(t * 0.55) * 0.07;
-    eye.scale.y = 0.65 + Math.abs(Math.sin(t * 0.42)) * 0.42;
+    const targetTilt = targets.openedDirector ? 0 : targets.balanceSignal * 0.34;
+    beamPivot.rotation.z += (targetTilt - beamPivot.rotation.z) * 0.075;
+
+    const unsettled = targets.inverseObserved && !targets.openedDirector;
+    pans[0].group.rotation.z = unsettled ? Math.sin(t * 0.8) * 0.035 : 0;
+    pans[1].group.rotation.z = unsettled ? -Math.sin(t * 0.8) * 0.035 : 0;
+
+    tokenMarkers.forEach((marker, index) => {
+      if (!marker.visible) return;
+      const entry = targets.readings[index];
+      const normalized = entry?.normalized || 0;
+      const zeroFloat = entry?.polarity === 'zero' ? 0.16 + Math.sin(t * 1.2 + index) * 0.035 : 0;
+      const targetY = 0.04 - normalized * 0.48 + zeroFloat;
+      marker.position.y += (targetY - marker.position.y) * 0.11;
+      marker.rotation.y += 0.006 + Math.abs(normalized) * 0.014;
+      marker.rotation.x += entry?.polarity === 'negative' ? 0.011 : 0.003;
+    });
+
+    zeroMarkers.forEach((marker, index) => {
+      if (!marker.visible) return;
+      marker.rotation.z = t * (0.3 + index * 0.08);
+      marker.position.y += Math.sin(t * (0.7 + index * 0.1) + index) * 0.0015;
+    });
+
+    inverseHalo.rotation.z = t * (targets.ruleLearned ? 0.18 : 0.48);
+    const apertureTargetScale = targets.ruleLearned ? 1.28 : 0.72 + Math.abs(Math.sin(t * 0.42)) * 0.35;
+    aperture.scale.y += (apertureTargetScale - aperture.scale.y) * 0.06;
   });
+
+  return {
+    applyState(projection) {
+      targets.balanceSignal = projection.balanceSignal;
+      targets.placedCount = projection.placedCount;
+      targets.readings = projection.readingEntries;
+      targets.zeroReadingCount = projection.zeroReadingCount;
+      targets.negativeReadingCount = projection.negativeReadingCount;
+      targets.inverseObserved = projection.inverseObserved;
+      targets.ruleLearned = projection.ruleLearned;
+      targets.openedDirector = projection.openedDirector;
+
+      inverseHalo.visible = projection.inverseObserved;
+      inverseHalo.material.color.setHex(projection.ruleLearned ? C.green : C.oxide);
+      apertureMaterial.emissive.setHex(projection.openedDirector ? C.green : projection.ruleLearned ? C.green : C.brass);
+      apertureMaterial.emissiveIntensity = projection.openedDirector ? 0.62 : projection.ruleLearned ? 0.38 : 0.16;
+      beamMaterial.emissive.setHex(C.green);
+      beamMaterial.emissiveIntensity = projection.openedDirector ? 0.12 : 0;
+      pans.forEach(({ pan }) => {
+        pan.material.emissive.setHex(projection.openedDirector ? C.green : 0x000000);
+        pan.material.emissiveIntensity = projection.openedDirector ? 0.08 : 0;
+      });
+
+      tokenMarkers.forEach((marker, index) => {
+        const entry = projection.readingEntries[index];
+        marker.visible = !!entry;
+        if (!entry) return;
+        const color = entry.polarity === 'negative'
+          ? C.oxide
+          : entry.polarity === 'zero'
+            ? (projection.ruleLearned ? C.green : C.bone)
+            : C.brass;
+        marker.material.color.setHex(color);
+        marker.material.emissive.setHex(color);
+        marker.material.emissiveIntensity = entry.polarity === 'zero' ? 0.3 : 0.08;
+      });
+
+      zeroMarkers.forEach((marker, index) => {
+        marker.visible = index < projection.zeroReadingCount;
+        marker.material.emissiveIntensity = projection.ruleLearned ? 0.42 : 0.08;
+      });
+    }
+  };
 }
 
 function addVerboten(group, animate) {
@@ -732,6 +858,18 @@ function applyCanonicalProjection(active = runtime.active) {
   }
   if (projection.solved != null && active.entry.id === 'archive') {
     active.entry.host.dataset.archiveSolved = projection.solved ? 'true' : 'false';
+  }
+  if (projection.placedCount != null) {
+    active.entry.host.dataset.placedCount = String(projection.placedCount);
+  }
+  if (projection.zeroReadingCount != null) {
+    active.entry.host.dataset.zeroReadings = String(projection.zeroReadingCount);
+  }
+  if (projection.ruleLearned != null && active.entry.id === 'oracle') {
+    active.entry.host.dataset.oracleRuleLearned = projection.ruleLearned ? 'true' : 'false';
+  }
+  if (projection.openedDirector != null && active.entry.id === 'oracle') {
+    active.entry.host.dataset.oracleDirectorOpened = projection.openedDirector ? 'true' : 'false';
   }
 }
 
