@@ -34,6 +34,9 @@ jobs:
       - name: Browser QA
         run: npm run qa:browser
 
+      - name: Full mystery playthrough
+        run: npm run qa:playthrough
+
       - name: Three.js resilience QA
         run: npm run qa:three
 
