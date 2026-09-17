@@ -517,7 +517,7 @@ function boot() {
     runtime.observer = new window.MutationObserver((records) => {
       for (const record of records) {
         for (const node of record.addedNodes) {
-          if (node instanceof Element) scan(node);
+          if (node instanceof window.Element) scan(node);
         }
       }
     });
