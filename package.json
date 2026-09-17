@@ -5,10 +5,16 @@
   "description": "An interactive browser mystery: seven impossible machines in an abandoned government laboratory.",
   "type": "module",
   "scripts": {
-    "start": "node server/serve.mjs",
-    "serve": "node server/serve.mjs",
+    "prepare:three": "node scripts/prepare-three.mjs",
+    "start": "npm run prepare:three && node server/serve.mjs",
+    "serve": "npm run prepare:three && node server/serve.mjs",
     "qa:setup": "node qa/setup.mjs",
     "qa": "node qa/run.mjs",
-    "qa:browser": "node qa/browser.mjs"
+    "qa:browser": "npm run prepare:three && node qa/browser.mjs",
+    "qa:three": "npm run prepare:three && node qa/three-runtime.mjs",
+    "qa:three-state": "node qa/machine-state.mjs"
+  },
+  "dependencies": {
+    "three": "0.186.0"
   }
 }

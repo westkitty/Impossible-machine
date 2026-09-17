@@ -23,12 +23,29 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+
+      - name: Install pinned runtime dependency
+        run: npm install --ignore-scripts --no-audit --no-fund
+
+      - name: Prepare local Three.js module
+        run: npm run prepare:three
+
+      - name: Remove build-only dependencies
+        run: rm -rf node_modules
+
       - name: Setup Pages
         uses: actions/configure-pages@v5
+
       - name: Upload artifact
         uses: actions/upload-pages-artifact@v3
         with:
           path: '.'
+
       - name: Deploy to GitHub Pages
         id: deployment
         uses: actions/deploy-pages@v4

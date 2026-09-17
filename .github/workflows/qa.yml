@@ -1,0 +1,41 @@
+name: QA
+
+on:
+  push:
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  qa:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+
+      - name: Install runtime dependency
+        run: npm install --ignore-scripts --no-audit --no-fund
+
+      - name: Install QA dependency
+        run: npm run qa:setup
+
+      - name: Prepare local Three.js module
+        run: npm run prepare:three
+
+      - name: Core QA
+        run: npm run qa
+
+      - name: Browser QA
+        run: npm run qa:browser
+
+      - name: Three.js resilience QA
+        run: npm run qa:three
+
+      - name: Three.js state projection QA
+        run: npm run qa:three-state
