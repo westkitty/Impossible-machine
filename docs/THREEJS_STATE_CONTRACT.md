@@ -78,6 +78,10 @@ graph TD
 
 When canonical machine code computes a derived value, recognition result, or secret rule, the 3D layer consumes only the resulting canonical state. It may not reproduce hidden formulas merely to animate the same concept. ORACLE's significance formula is the reference case.
 
+### INV-3D-006 — Secret content does not cross the renderer boundary
+
+When puzzle progress includes secret text or ordered symbols, Three.js receives anonymous progress or boolean consequences only. VERBOTEN printed words/capture keys and SUNDIAL glyph/access-code content are the reference cases. Focused tests must prove those literals are absent from the projection object.
+
 ## DEIMOS reference projection
 
 `projectDeimosState(state)` is the first reference adapter.
@@ -203,6 +207,69 @@ Forbidden duplication:
 - no inference that a token should unlock the Director independent of canonical `openedDirector`.
 
 This keeps the renderer capable of dramatizing the consequences of the Oracle while structurally unable to become a parallel implementation of its secret rule.
+
+
+## VERBOTEN reference projection
+
+`projectVerbotenState(state)` is the sixth state-driven adapter. VERBOTEN establishes a strict content-boundary rule: the 3D layer may know how much printing and witnessing has occurred, but it never receives the printed words, capture keys, staff names, or ledger order.
+
+Canonical inputs:
+- `state.machines.verboten.wordsPrinted` length only
+- `state.machines.verboten.captures` finite-entry count only
+- `state.machines.verboten.openedDirector`
+
+Derived presentation outputs:
+- bounded `printedCount` and `capturedCount`
+- `printCompletion` and `captureDensity`
+- `spent`
+- `openedDirector`
+- `phase`
+
+Physical interpretation:
+- spool, tape, furnace heat, and twelve anonymous print markers react to print progress;
+- anonymous witness markers and containment compression react to capture progress;
+- the renderer cannot display the ledger because no word value or capture key crosses the projector boundary;
+- canonical Director unlock stabilizes the machine into green aftermath.
+
+Forbidden leakage:
+- no `wordsPrinted[].word` values in the projection;
+- no capture object keys in the projection;
+- no staff-name table or ledger-order copy in Three.js;
+- no renderer-side inference of Director unlock.
+
+## SUNDIAL reference projection
+
+`projectSundialState(state)` is the seventh state-driven adapter. It projects retrograde time and anonymous access-progress consequences while keeping the seven glyph characters and assembled access-code string entirely inside canonical gameplay state.
+
+Canonical inputs:
+- `state.machines.sundial.hour`
+- `state.machines.sundial.glyphs` length only
+- existence of `state.machines.sundial.accessCode` as a boolean ready state only
+- `state.discoveries.sundial_reversal`
+- `state.machines.sundial.used`
+
+Derived presentation outputs:
+- bounded `hour` and `shadowAngleRadians`
+- bounded `glyphCount` and `glyphCompletion`
+- `codeReady`
+- `reversalObserved`
+- `used`
+- `phase`
+
+Physical interpretation:
+- a 24-position dial and shadow pivot express the canonical retrograde hour;
+- seven anonymous apertures illuminate as glyph progress is earned;
+- reversal discovery exposes a ghosted counter-shadow without showing any character;
+- completed code state activates a central iris without exposing the code;
+- successful canonical code use stabilizes the whole apparatus into green aftermath.
+
+Forbidden leakage:
+- no glyph array in the projection;
+- no glyph character in the renderer;
+- no access-code string in the projection or DOM dataset;
+- no renderer-side code validation.
+
+The seven-machine projection layer is now complete. Any later 3D interaction must preserve the same one-way authority rule and route semantic actions back through existing machine/store commands.
 
 ## Future machine adapters
 

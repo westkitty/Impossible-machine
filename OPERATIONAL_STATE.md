@@ -7,12 +7,12 @@
   "project_name": "The Department of Impossible Machines",
   "project_root": ".",
   "artifact_path": "",
-  "state_revision": 7,
-  "last_updated": "2026-09-17T22:21:00Z",
+  "state_revision": 8,
+  "last_updated": "2026-09-17T23:05:00Z",
   "current_baseline": {
-    "identity": "main 5606d53fd3cab8096af28d90744af820299ee28f deployed; active branch upgrade/threejs-oracle-state with ORACLE code verified at d596f0c145d5600d52f6c8e4be0bb1dbb1331dba",
+    "identity": "main 538e44ded5d00f9ac919b95d62ffa32d35b74535 deployed with VERBOTEN; active branch upgrade/threejs-sundial-state verified at ed87b8af02d957f9d3a1817f70c698f8ad90d481",
     "state": "partially-verified",
-    "last_verified": "main QA 35281031936; Pages 35281031946; ORACLE branch QA 35281321909"
+    "last_verified": "main QA 35282123826; Pages 35282123751; SUNDIAL branch QA 35285007495"
   },
   "scope_boundaries": ["Browser mystery application and GitHub Pages deployment"],
   "linked_parent_state": null
@@ -25,9 +25,9 @@ The Department of Impossible Machines is a browser mystery set in Facility 7-B. 
 
 ## 2. Current Baseline
 
-`main` at `5606d53fd3cab8096af28d90744af820299ee28f` contains the production-safe Three.js runtime plus state-driven DEIMOS, CHRONOSTAT, ATLAS, and ARCHIVE checkpoints. GitHub Actions QA run `35281031936` and Pages deployment `35281031946` both completed successfully on that exact SHA.
+`main` at `538e44ded5d00f9ac919b95d62ffa32d35b74535` contains the production-safe Three.js runtime plus state-driven DEIMOS, CHRONOSTAT, ATLAS, ARCHIVE, ORACLE, and VERBOTEN checkpoints. GitHub Actions QA run `35282123826` and Pages deployment `35282123751` both completed successfully on that exact SHA.
 
-Active branch `upgrade/threejs-oracle-state` adds the fifth canonical-state-driven machine, ORACLE. Its physical-code head `d596f0c145d5600d52f6c8e4be0bb1dbb1331dba` passed the complete CI gate in run `35281321909` before documentation/state promotion.
+Active branch `upgrade/threejs-sundial-state` adds the seventh and final state-driven machine, SUNDIAL, and closes the missing focused VERBOTEN projection coverage. Exact implementation head `ed87b8af02d957f9d3a1817f70c698f8ad90d481` passed core QA, browser QA, Three.js resilience QA, and machine-state projection QA in run `35285007495`.
 
 ## 3. Artifact Contract
 
@@ -41,9 +41,10 @@ Preserve the existing mystery, room traversal, persistence, archive, notebook, e
 - Evidence: post-merge `main` QA `35281031936`; ORACLE branch QA `35281321909`.
 
 ### INV-002 — Canonical state remains outside Three.js
-- **State:** `partially-verified`
-- DEIMOS, CHRONOSTAT, ATLAS, ARCHIVE, and ORACLE use immutable read-only projectors.
+- **State:** `verified-nonGPU`
+- All seven machines use immutable read-only projectors.
 - Three.js may not become sole authority for puzzle progress, saves, discoveries, gates, or endings.
+- Evidence: focused projection coverage through SUNDIAL plus full branch QA `35285007495`.
 
 ### INV-003 — One renderer and one frame-loop owner
 - **State:** `verified-by-source-and-CI`
@@ -66,6 +67,17 @@ Preserve the existing mystery, room traversal, persistence, archive, notebook, e
 - Three.js consumes canonical placed IDs, persisted reading results, discovery flags, and Director unlock only.
 - It does not duplicate true-mass data, significance scores, or the hidden reading formula from `src/machines/oracle.js`.
 - Evidence: focused ORACLE projection tests plus full QA run `35281321909`.
+
+### INV-008 — VERBOTEN secret words stay outside Three.js
+- **State:** `verified-nonGPU`
+- The projector exposes anonymous print/capture counts only; printed words, capture keys, names, and ledger order do not cross into rendering.
+- Evidence: focused anti-leakage assertions plus full QA `35285007495`.
+
+### INV-009 — SUNDIAL code content stays outside Three.js
+- **State:** `verified-nonGPU`
+- The projector exposes retrograde hour, glyph count/completion, code-ready boolean, reversal discovery, and used state only.
+- Glyph characters and the access-code string do not cross into rendering or DOM datasets.
+- Evidence: focused anti-leakage assertions plus full QA `35285007495`.
 
 ## 5. Verified Working Behavior
 
@@ -95,13 +107,23 @@ Preserve the existing mystery, room traversal, persistence, archive, notebook, e
 - Positive, negative, and zero readings remain distinguishable; rule-learning and Director unlock are canonical flags only.
 - Evidence: full branch QA `35281321909` at `d596f0c145d5600d52f6c8e4be0bb1dbb1331dba`.
 
+### VFY-007 — VERBOTEN anonymous-progress projection contract
+- **State:** `verified-nonGPU`
+- Print/capture progress drives spool, tape, furnace, containment, and anonymous markers without word leakage.
+- Merged checkpoint `538e44d` passed post-merge QA and Pages deployment.
+
+### VFY-008 — SUNDIAL retrograde/access-progress projection contract
+- **State:** `verified-nonGPU`
+- Canonical hour, anonymous glyph progress, reversal discovery, code-ready state, and successful use drive the 3D sundial without code leakage.
+- Branch evidence: `ed87b8a`, QA `35285007495`.
+
 ## 6. Known Not Working
 
 None established from current evidence.
 
 ## 7. Implemented but Unverified
 
-Real GPU visual behavior remains unverified for all seven views. Specifically unverified state-driven paths now include DEIMOS, CHRONOSTAT, ATLAS, ARCHIVE, and ORACLE. ORACLE requires real-browser placed-object/readings/rule-learned/Director-unlock observation.
+Real GPU visual behavior remains unverified for all seven state-driven views: DEIMOS, CHRONOSTAT, ATLAS, ARCHIVE, ORACLE, VERBOTEN, and SUNDIAL. CI proves source behavior, browser fallback, and immutable projection contracts; it does not prove actual WebGL visual correctness, device performance, or long-session lifecycle behavior.
 
 ## 8. Unknown or Evidence-Stale State
 
@@ -116,9 +138,9 @@ Real GPU rendering, visual correctness, sustained frame-time behavior, lifecycle
 - Validate merged Pages in a real WebGL browser across all seven machine rooms and state transitions.
 
 ### PEND-002 — Complete state-driven projections
-- **State:** `partially-verified`
-- **Progress:** 5/7: DEIMOS, CHRONOSTAT, ATLAS, ARCHIVE, ORACLE.
-- **Remaining:** VERBOTEN, SUNDIAL.
+- **State:** `verified-nonGPU`
+- **Progress:** 7/7 complete: DEIMOS, CHRONOSTAT, ATLAS, ARCHIVE, ORACLE, VERBOTEN, SUNDIAL.
+- Focused projector coverage now includes the previously missing VERBOTEN anti-leakage cases plus SUNDIAL anti-code-leakage cases.
 
 ### PEND-003 — Lifecycle/performance evidence
 - **State:** `deferred`
@@ -143,19 +165,20 @@ Real GPU rendering, visual correctness, sustained frame-time behavior, lifecycle
 
 | ID | Capability / invariant | State | Evidence | Next proof |
 | --- | --- | --- | --- | --- |
-| INV-001 | Existing game behavior preserved | verified | main QA `35281031936`; ORACLE QA `35281321909` | re-run each checkpoint |
-| INV-002 | Canonical state outside Three.js | partially-verified | 5 immutable machine projectors | repeat for 2 remaining machines |
-| INV-003 | One renderer/loop owner | verified-by-source-and-CI | managed runtime | lifecycle measurement later |
-| INV-004 | 3D failure non-fatal | verified | resilience QA | re-run runtime changes |
-| INV-005 | ATLAS geometry bounded | verified-nonGPU | focused projection QA | real GPU proof |
-| INV-006 | ARCHIVE revealed != solved | verified-nonGPU | focused projection QA | real GPU proof |
-| INV-007 | ORACLE hidden formula stays canonical | verified-nonGPU | focused + full QA | real GPU proof |
-| VFY-006 | ORACLE projection | verified-nonGPU | branch QA `35281321909` | merge/deploy + real GPU proof |
-| PEND-002 | All seven projections | 5/7 | five verified contracts | VERBOTEN, SUNDIAL remain |
+| INV-001 | Existing game behavior preserved | verified | main QA `35282123826`; final branch QA `35285007495` | re-run on future gameplay changes |
+| INV-002 | Canonical state outside Three.js | verified-nonGPU | 7 immutable machine projectors | real GPU observation |
+| INV-003 | One renderer/loop owner | verified-by-source-and-CI | managed runtime | lifecycle measurement |
+| INV-004 | 3D failure non-fatal | verified | resilience QA through final branch | real browser fallback spot-check |
+| INV-005 | ATLAS geometry bounded | verified-nonGPU | focused projection QA | real GPU coastline observation |
+| INV-006 | ARCHIVE revealed != solved | verified-nonGPU | focused projection QA | real GPU cabinet observation |
+| INV-007 | ORACLE hidden formula stays canonical | verified-nonGPU | focused projection QA | real GPU scale observation |
+| INV-008 | VERBOTEN content remains secret | verified-nonGPU | anti-leakage assertions + QA `35285007495` | real GPU progress observation |
+| INV-009 | SUNDIAL code remains secret | verified-nonGPU | anti-leakage assertions + QA `35285007495` | real GPU retrograde/code-ready observation |
+| PEND-002 | All seven projections | verified-nonGPU | 7/7 focused + regression QA | merge/deploy + GPU proof |
 
 ## 12. Current Change Scope and Impact Radius
 
-Current branch changes are bounded to ORACLE presentation projection, focused projection tests, shared Three.js scene presentation, state-contract documentation, and this operational-state update. No canonical ORACLE significance formula, token data, gate logic, persistence schema, notebook, or ending logic is authorized to change in this checkpoint.
+Current branch changes are bounded to SUNDIAL read-only projection, focused SUNDIAL and VERBOTEN anti-leakage regression coverage, shared Three.js SUNDIAL presentation, state-contract documentation, and this operational-state update. No canonical SUNDIAL access-code generation/validation, VERBOTEN ledger/capture logic, room gates, persistence schema, notebook behavior, or endings are authorized to change in this checkpoint.
 
 ## 13. Compact Revision Log
 
@@ -166,3 +189,4 @@ Current branch changes are bounded to ORACLE presentation projection, focused pr
 - **r5:** Promoted ATLAS bounded topology projection.
 - **r6:** Promoted ARCHIVE revelation-versus-solution projection.
 - **r7 — 2026-09-17:** Recorded merged/deployed ARCHIVE baseline and promoted ORACLE stored-reading projection after full branch QA; hidden significance logic remains exclusively canonical.
+- **r8 — 2026-09-17:** Recorded merged/deployed VERBOTEN baseline, repaired missing focused VERBOTEN anti-leakage coverage, and promoted SUNDIAL as the seventh state-driven projection after full branch QA.
