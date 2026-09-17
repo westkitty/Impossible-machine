@@ -39,3 +39,6 @@ jobs:
 
       - name: Three.js state projection QA
         run: npm run qa:three-state
+
+      - name: Facility atmosphere QA
+        run: npm run qa:facility-atmosphere

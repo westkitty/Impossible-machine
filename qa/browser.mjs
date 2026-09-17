@@ -107,6 +107,9 @@ await step('Phase 2 — Starting state', async () => {
   assert(titleEl?.textContent.includes('Foyer'), 'starts in Foyer');
   const navBtns = $$('.title-bar nav button');
   assert(navBtns.length === 4, 'nav has 4 buttons');
+  assert($('.stage')?.dataset.roomId === 'foyer', 'foyer has facility atmosphere room identity');
+  assert(!!$('.stage')?.dataset.facilityTone, 'foyer has facility atmosphere tone');
+  assert($('.door-pill').every((door) => door.tagName === 'BUTTON'), 'facility doors are semantic buttons');
 });
 
 // ───── Phase 3: archive view ─────
@@ -151,6 +154,7 @@ await step('Phase 5 — Navigate to Atlas', async () => {
   assert(southDoor, 'South corridor door exists');
   southDoor.click();
   await wait(100);
+  assert($('.stage')?.dataset.roomId === 'corridor_s', 'facility atmosphere updates with room navigation');
   // Now click Atlas Chamber
   let atlasDoor = $$('.door-pill').find(d => d.textContent.includes('Atlas'));
   assert(atlasDoor, 'Atlas door exists in South corridor');
@@ -212,6 +216,7 @@ await step('Phase 8 — Verboten initially locked', async () => {
   assert(verbotenPill, 'Verboten door is visible');
   if (verbotenPill) {
     assert(verbotenPill.classList.contains('locked'), 'Verboten door is locked');
+    assert(verbotenPill.getAttribute('aria-disabled') === 'true', 'locked door remains explainable and exposes aria-disabled');
   }
 });
 
