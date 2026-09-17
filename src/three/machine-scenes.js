@@ -1,3 +1,5 @@
+import { projectMachineState } from './machine-state.js';
+
 const THREE_MODULE_URL = new URL('./vendor/three.module.js', import.meta.url).href;
 const MACHINE_IDS = ['deimos', 'chronostat', 'atlas', 'archive', 'oracle', 'verboten', 'sundial'];
 const mounted = new WeakMap();
@@ -39,20 +41,62 @@ function idFor(root) {
 }
 
 function addDeimos(group, animate) {
+  const orientationFrame = new THREE.Group();
   const cage = new THREE.Group();
   for (let i = 0; i < 4; i++) {
     const r = ring(0.92 + i * 0.16, i % 2 ? C.bone : C.brass);
     r.rotation.set(Math.PI / 2, i * 0.42, i * 0.2);
     cage.add(r);
   }
+
   const core = new THREE.Mesh(new THREE.OctahedronGeometry(0.48, 1), mat(C.bone, 0.75, 0.22));
   cage.add(core);
-  group.add(cage);
+  orientationFrame.add(cage);
+  group.add(orientationFrame);
+
+  const safeBody = new THREE.Mesh(
+    new THREE.BoxGeometry(0.78, 0.9, 0.42),
+    mat(C.iron, 0.62, 0.5)
+  );
+  safeBody.position.set(1.45, -0.15, -0.05);
+  group.add(safeBody);
+
+  const safeDoorPivot = new THREE.Group();
+  safeDoorPivot.position.set(1.06, -0.15, 0.2);
+  const safeDoor = new THREE.Mesh(
+    new THREE.BoxGeometry(0.7, 0.78, 0.08),
+    mat(C.brass, 0.58, 0.34)
+  );
+  safeDoor.position.x = 0.35;
+  const safeHandle = new THREE.Mesh(
+    new THREE.TorusGeometry(0.1, 0.018, 8, 24),
+    mat(C.bone, 0.72, 0.3)
+  );
+  safeHandle.position.set(0.53, 0, 0.06);
+  safeDoorPivot.add(safeDoor, safeHandle);
+  group.add(safeDoorPivot);
+
+  const targets = {
+    orientation: 0,
+    safeDoor: 0
+  };
+
   animate.push((t) => {
-    cage.rotation.x = t * 0.12;
-    cage.rotation.z = Math.sin(t * 0.38) * 0.4;
+    orientationFrame.rotation.z += (targets.orientation - orientationFrame.rotation.z) * 0.085;
+    cage.rotation.x = Math.sin(t * 0.55) * 0.08;
+    cage.rotation.y = Math.sin(t * 0.31) * 0.05;
     core.rotation.y = -t * 0.6;
+    safeDoorPivot.rotation.y += (targets.safeDoor - safeDoorPivot.rotation.y) * 0.11;
   });
+
+  return {
+    applyState(projection) {
+      targets.orientation = -projection.orientationRadians;
+      targets.safeDoor = projection.safeOpen ? -1.22 : 0;
+      safeBody.material.emissive?.setHex?.(projection.triggerAligned ? C.green : 0x000000);
+      safeBody.material.emissiveIntensity = projection.triggerAligned ? 0.12 : 0;
+    }
+  };
 }
 
 function addChronostat(group, animate) {
@@ -325,7 +369,7 @@ function createScene(id) {
   const group = new THREE.Group();
   scene.add(group);
   const animators = [];
-  builders[id](group, animators);
+  const controller = builders[id](group, animators) || null;
 
   const camera = new THREE.PerspectiveCamera(38, 1, 0.1, 50);
   camera.position.set(0, 0.2, 4.8);
@@ -334,6 +378,8 @@ function createScene(id) {
     scene,
     camera,
     animators,
+    controller,
+    projectionKey: null,
     pointer: new THREE.Vector2(),
     reducedMotion: window.matchMedia?.('(prefers-reduced-motion: reduce)') || { matches: false }
   };
@@ -350,6 +396,25 @@ function resizeActive() {
   camera.updateProjectionMatrix();
 }
 
+function applyCanonicalProjection(active = runtime.active) {
+  if (!active?.controller?.applyState) return;
+  const store = window.__impossibleStore;
+  if (!store?.get) return;
+
+  const projection = projectMachineState(active.entry.id, store.get());
+  const key = JSON.stringify(projection);
+  if (key === active.projectionKey) return;
+  active.projectionKey = key;
+  active.controller.applyState(projection);
+  active.entry.host.dataset.machinePhase = projection.phase || 'idle';
+  if (projection.orientationIndex != null) {
+    active.entry.host.dataset.orientationIndex = String(projection.orientationIndex);
+  }
+  if (projection.safeOpen != null) {
+    active.entry.host.dataset.safeOpen = projection.safeOpen ? 'true' : 'false';
+  }
+}
+
 function renderFrame(time = 0) {
   const active = runtime.active;
   if (!active || !runtime.renderer || runtime.contextLost) return;
@@ -358,6 +423,8 @@ function renderFrame(time = 0) {
     return;
   }
   if (document.hidden) return;
+
+  applyCanonicalProjection(active);
 
   const speed = active.reducedMotion.matches ? 0.12 : 1;
   const t = (time / 1000) * speed;
@@ -448,6 +515,7 @@ function activate(entry) {
   };
 
   resizeActive();
+  applyCanonicalProjection(runtime.active);
   setStatus(entry, 'ready', '3D INSTRUMENT ONLINE');
   renderer.setAnimationLoop(renderFrame);
 }
@@ -542,6 +610,7 @@ export function getThreeRuntimeStatus() {
     activeMachine: runtime.active?.entry?.id || null,
     mountedViews: entries.size,
     contextLost: runtime.contextLost,
+    projectedPhase: runtime.active?.entry?.host?.dataset?.machinePhase || null,
     unavailableReason: runtime.unavailableReason
   };
 }
