@@ -109,7 +109,7 @@ await step('Phase 2 — Starting state', async () => {
   assert(navBtns.length === 4, 'nav has 4 buttons');
   assert($('.stage')?.dataset.roomId === 'foyer', 'foyer has facility atmosphere room identity');
   assert(!!$('.stage')?.dataset.facilityTone, 'foyer has facility atmosphere tone');
-  assert($('.door-pill').every((door) => door.tagName === 'BUTTON'), 'facility doors are semantic buttons');
+  assert($$('.door-pill').every((door) => door.tagName === 'BUTTON'), 'facility doors are semantic buttons');
 });
 
 // ───── Phase 3: archive view ─────
