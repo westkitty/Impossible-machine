@@ -8,6 +8,7 @@ const CHRONOSTAT_MAX_ROUND_TRIPS = 6;
 const CHRONOSTAT_PHASE_COUNT = 7;
 const ATLAS_MAX_PATH_POINTS = 48;
 const ARCHIVE_STAFF_IDS = ['harker', 'pell', 'doss', 'mora', 'vance', 'yuen'];
+const ORACLE_TOKEN_IDS = ['ring', 'specs', 'photo', 'plumb', 'pulse', 'compass', 'glove', 'journal', 'cinder'];
 
 function boundedInteger(value, min, max, fallback = min) {
   if (!Number.isInteger(value)) return fallback;
@@ -21,6 +22,11 @@ function arrayLength(value) {
 function clamp01(value) {
   if (!Number.isFinite(value)) return 0;
   return Math.min(1, Math.max(0, value));
+}
+
+function clampSigned(value) {
+  if (!Number.isFinite(value)) return 0;
+  return Math.min(1, Math.max(-1, value));
 }
 
 function freezePoint(point) {
@@ -152,6 +158,49 @@ export function projectArchiveState(state) {
   });
 }
 
+export function projectOracleState(state) {
+  const machine = state?.machines?.oracle || {};
+  const placedIds = projectKnownIds(machine.placed, ORACLE_TOKEN_IDS);
+  const readings = machine.readings && typeof machine.readings === 'object' ? machine.readings : {};
+  const readingEntries = Object.freeze(placedIds.map((id) => {
+    const rawValue = readings[id];
+    const value = Number.isFinite(rawValue) ? rawValue : null;
+    return Object.freeze({
+      id,
+      value,
+      normalized: value == null ? 0 : clampSigned(value / 100),
+      polarity: value == null ? 'unknown' : value === 0 ? 'zero' : value < 0 ? 'negative' : 'positive'
+    });
+  }));
+
+  const finiteEntries = readingEntries.filter((entry) => entry.value != null);
+  const zeroReadingCount = finiteEntries.filter((entry) => entry.value === 0).length;
+  const negativeReadingCount = finiteEntries.filter((entry) => entry.value < 0).length;
+  const positiveReadingCount = finiteEntries.filter((entry) => entry.value > 0).length;
+  const balanceSignal = finiteEntries.length
+    ? clampSigned(finiteEntries.reduce((sum, entry) => sum + entry.normalized, 0) / finiteEntries.length)
+    : 0;
+  const inverseObserved = state?.discoveries?.oracle_inverse === true;
+  const ruleLearned = state?.discoveries?.oracle_significance === true;
+  const openedDirector = machine.openedDirector === true;
+
+  return Object.freeze({
+    machineId: 'oracle',
+    placedIds,
+    readingEntries,
+    placedCount: placedIds.length,
+    readingCount: finiteEntries.length,
+    zeroReadingCount,
+    negativeReadingCount,
+    positiveReadingCount,
+    balanceSignal,
+    inverseObserved,
+    ruleLearned,
+    openedDirector,
+    phase: openedDirector ? 'aftermath' : placedIds.length > 0 ? 'engaged' : 'dormant'
+  });
+}
+
 export function projectMachineState(machineId, state) {
   switch (machineId) {
     case 'deimos':
@@ -162,6 +211,8 @@ export function projectMachineState(machineId, state) {
       return projectAtlasState(state);
     case 'archive':
       return projectArchiveState(state);
+    case 'oracle':
+      return projectOracleState(state);
     default:
       return Object.freeze({ machineId, phase: 'idle' });
   }
