@@ -36,3 +36,6 @@ jobs:
 
       - name: Three.js resilience QA
         run: npm run qa:three
+
+      - name: Three.js state projection QA
+        run: npm run qa:three-state
