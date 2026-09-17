@@ -1,4 +1,5 @@
 import { projectMachineState } from './machine-state.js';
+import { INSPECTION_LIMITS, normalizeInspectionState, inspectionCommandForKey, applyInspectionDelta, interpolateInspectionState } from './inspection.js';
 
 const THREE_MODULE_URL = new URL('./vendor/three.module.js', import.meta.url).href;
 const MACHINE_IDS = ['deimos', 'chronostat', 'atlas', 'archive', 'oracle', 'verboten', 'sundial'];
@@ -757,7 +758,19 @@ function injectStyles() {
     .machine-three-status{position:absolute;z-index:4;inset:auto 14px 14px 14px;padding:8px 10px;border:1px solid rgba(200,162,90,.26);background:rgba(17,19,15,.9);color:var(--ink-soft);font:10px/1.35 var(--mono);letter-spacing:.08em;text-transform:uppercase}
     .machine-three-view[data-three-status="ready"] .machine-three-status{display:none}
     .machine-three-view[data-three-status="context-lost"] .machine-three-status{color:var(--accent)}
-    @media(max-width:900px){.machine-three-view{height:240px}}
+    .machine-three-inspect{position:absolute;z-index:5;top:8px;right:10px;padding:5px 8px;background:rgba(17,19,15,.88);border:1px solid rgba(200,162,90,.45);font:9px/1.1 var(--mono);letter-spacing:.12em}
+    .machine-three-view:not([data-three-status="ready"]) .machine-three-inspect{display:none}
+    .machine-three-view[data-inspecting="true"]{height:clamp(320px,58vh,620px)}
+    .machine-three-view[data-inspecting="true"] .machine-three-inspect{display:none}
+    .machine-three-view[data-inspecting="true"] .machine-three-canvas{touch-action:none;cursor:grab}
+    .machine-three-view[data-inspecting="true"][data-dragging="true"] .machine-three-canvas{cursor:grabbing}
+    .machine-three-inspection-toolbar{display:none;position:absolute;z-index:5;right:10px;bottom:10px;gap:6px;padding:6px;border:1px solid rgba(200,162,90,.28);background:rgba(17,19,15,.88)}
+    .machine-three-view[data-inspecting="true"] .machine-three-inspection-toolbar{display:flex}
+    .machine-three-inspection-toolbar button{padding:5px 7px;font:9px/1.1 var(--mono);letter-spacing:.1em}
+    .machine-three-announcer{position:absolute;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip:rect(0,0,0,0);white-space:nowrap;border:0}
+    .machine-three-view:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+    @media(prefers-reduced-motion:reduce){.machine-three-view{transition:none}}
+    @media(max-width:900px){.machine-three-view{height:240px}.machine-three-view[data-inspecting="true"]{height:clamp(300px,52vh,500px)}}
   `;
   document.head.appendChild(style);
 }
@@ -766,15 +779,26 @@ function setStatus(entry, status, message) {
   entry.host.dataset.threeStatus = status;
   const statusEl = entry.host.querySelector('.machine-three-status');
   if (statusEl && message) statusEl.textContent = message;
+  const inspectButton = entry.host.querySelector('.machine-three-inspect');
+  if (inspectButton) inspectButton.disabled = status !== 'ready';
 }
 
 function createHost(root, id) {
   const host = document.createElement('section');
   host.className = 'machine-three-view';
   host.dataset.threeStatus = 'loading';
+  host.dataset.inspecting = 'false';
+  host.dataset.dragging = 'false';
+  host.tabIndex = 0;
   host.setAttribute('aria-label', `${id} three-dimensional instrument view`);
   host.innerHTML = [
     '<div class="machine-three-badge">3D INSTRUMENT VIEW</div>',
+    '<button type="button" class="machine-three-inspect" aria-pressed="false" disabled>INSPECT APPARATUS</button>',
+    '<div class="machine-three-inspection-toolbar" aria-label="Apparatus inspection controls">',
+    '<button type="button" data-three-action="reset">RESET VIEW</button>',
+    '<button type="button" data-three-action="close">CLOSE</button>',
+    '</div>',
+    '<div class="machine-three-announcer" role="status" aria-live="polite"></div>',
     '<div class="machine-three-status" role="status">INITIALIZING LOCAL 3D INSTRUMENT…</div>'
   ].join('');
   const title = root.querySelector('h2');
@@ -853,8 +877,30 @@ function createScene(id) {
   const animators = [];
   const controller = builders[id](group, animators) || null;
   const camera = new THREE.PerspectiveCamera(38, 1, 0.1, 50);
-  camera.position.set(0, 0.2, 4.8);
-  return { scene, camera, animators, controller, projectionKey: null, pointer: new THREE.Vector2(), reducedMotion: window.matchMedia?.('(prefers-reduced-motion: reduce)') || { matches: false } };
+  camera.position.set(0, 0.2, INSPECTION_LIMITS.defaultDistance);
+  const inspection = {
+    enabled: false,
+    yaw: 0,
+    pitch: 0,
+    targetYaw: 0,
+    targetPitch: 0,
+    distance: INSPECTION_LIMITS.defaultDistance,
+    targetDistance: INSPECTION_LIMITS.defaultDistance,
+    dragging: false,
+    lastX: 0,
+    lastY: 0
+  };
+  return {
+    scene,
+    camera,
+    animators,
+    controller,
+    inspectionRig: group,
+    inspection,
+    projectionKey: null,
+    pointer: new THREE.Vector2(),
+    reducedMotion: window.matchMedia?.('(prefers-reduced-motion: reduce)') || { matches: false }
+  };
 }
 
 function resizeActive() {
@@ -866,6 +912,35 @@ function resizeActive() {
   runtime.renderer.setSize(width, height, false);
   camera.aspect = width / height;
   camera.updateProjectionMatrix();
+}
+
+function resetInspection(active, immediate = false) {
+  if (!active?.inspection) return;
+  active.inspection.targetYaw = 0;
+  active.inspection.targetPitch = 0;
+  active.inspection.targetDistance = INSPECTION_LIMITS.defaultDistance;
+  if (immediate) {
+    active.inspection.yaw = 0;
+    active.inspection.pitch = 0;
+    active.inspection.distance = INSPECTION_LIMITS.defaultDistance;
+    active.inspectionRig.rotation.set(0, 0, 0);
+    active.camera.position.z = INSPECTION_LIMITS.defaultDistance;
+  }
+}
+
+function setInspectionMode(active, enabled) {
+  if (!active?.entry?.host || !active.inspection) return;
+  active.inspection.enabled = enabled === true;
+  active.inspection.dragging = false;
+  active.entry.host.dataset.inspecting = active.inspection.enabled ? 'true' : 'false';
+  active.entry.host.dataset.dragging = 'false';
+  const button = active.entry.host.querySelector('.machine-three-inspect');
+  if (button) button.setAttribute('aria-pressed', active.inspection.enabled ? 'true' : 'false');
+  const announcer = active.entry.host.querySelector('.machine-three-announcer');
+  if (announcer) announcer.textContent = active.inspection.enabled ? 'Apparatus inspection mode entered.' : 'Apparatus inspection mode closed.';
+  if (!active.inspection.enabled) resetInspection(active);
+  if (active.inspection.enabled) active.entry.host.focus?.({ preventScroll: true });
+  resizeActive();
 }
 
 function applyCanonicalProjection(active = runtime.active) {
@@ -912,8 +987,31 @@ function renderFrame(time = 0) {
   const speed = active.reducedMotion.matches ? 0.12 : 1;
   const t = (time / 1000) * speed;
   active.animators.forEach((animate) => animate(t));
-  active.camera.position.x += (active.pointer.x * 0.38 - active.camera.position.x) * 0.035;
-  active.camera.position.y += (0.2 + active.pointer.y * 0.2 - active.camera.position.y) * 0.035;
+
+  const nextInspection = interpolateInspectionState(
+    {
+      yaw: active.inspection.yaw,
+      pitch: active.inspection.pitch,
+      distance: active.inspection.distance
+    },
+    {
+      yaw: active.inspection.targetYaw,
+      pitch: active.inspection.targetPitch,
+      distance: active.inspection.targetDistance
+    },
+    active.reducedMotion.matches
+  );
+  active.inspection.yaw = nextInspection.yaw;
+  active.inspection.pitch = nextInspection.pitch;
+  active.inspection.distance = nextInspection.distance;
+  active.inspectionRig.rotation.x = nextInspection.pitch;
+  active.inspectionRig.rotation.y = nextInspection.yaw;
+  active.camera.position.z = nextInspection.distance;
+
+  const cameraX = active.inspection.enabled ? 0 : active.pointer.x * 0.38;
+  const cameraY = active.inspection.enabled ? 0.2 : 0.2 + active.pointer.y * 0.2;
+  active.camera.position.x += (cameraX - active.camera.position.x) * 0.035;
+  active.camera.position.y += (cameraY - active.camera.position.y) * 0.035;
   active.camera.lookAt(0, -0.04, 0);
   runtime.renderer.render(active.scene, active.camera);
 }
@@ -926,6 +1024,14 @@ function deactivateActive() {
   if (active.onWindowResize) window.removeEventListener('resize', active.onWindowResize);
   active.entry.host.removeEventListener('pointermove', active.onMove);
   active.entry.host.removeEventListener('pointerleave', active.onLeave);
+  active.entry.host.removeEventListener('pointerdown', active.onPointerDown);
+  active.entry.host.removeEventListener('pointerup', active.onPointerUp);
+  active.entry.host.removeEventListener('pointercancel', active.onPointerUp);
+  active.entry.host.removeEventListener('wheel', active.onWheel);
+  active.entry.host.removeEventListener('keydown', active.onKeyDown);
+  active.inspectButton?.removeEventListener('click', active.onInspectClick);
+  active.resetButton?.removeEventListener('click', active.onResetClick);
+  active.closeButton?.removeEventListener('click', active.onCloseClick);
   disposeObject(active.scene);
   runtime.canvas?.remove();
   runtime.active = null;
@@ -955,15 +1061,121 @@ function activate(entry) {
     setStatus(entry, 'unavailable', '3D VIEW UNAVAILABLE — INSTRUMENT CONTROLS REMAIN ACTIVE');
     return;
   }
+  const inspectButton = entry.host.querySelector('.machine-three-inspect');
+  const resetButton = entry.host.querySelector('[data-three-action="reset"]');
+  const closeButton = entry.host.querySelector('[data-three-action="close"]');
+  const activeForEntry = () => runtime.active?.entry === entry ? runtime.active : null;
+
+  const setTargets = (next) => {
+    const active = activeForEntry();
+    if (!active) return;
+    const normalized = normalizeInspectionState(next);
+    active.inspection.targetYaw = normalized.yaw;
+    active.inspection.targetPitch = normalized.pitch;
+    active.inspection.targetDistance = normalized.distance;
+  };
+
   const onMove = (event) => {
+    const active = activeForEntry();
+    if (active?.inspection.enabled && active.inspection.dragging) {
+      const dx = event.clientX - active.inspection.lastX;
+      const dy = event.clientY - active.inspection.lastY;
+      active.inspection.lastX = event.clientX;
+      active.inspection.lastY = event.clientY;
+      setTargets({
+        yaw: active.inspection.targetYaw + dx * 0.008,
+        pitch: active.inspection.targetPitch + dy * 0.006,
+        distance: active.inspection.targetDistance
+      });
+      event.preventDefault?.();
+      return;
+    }
     const rect = entry.host.getBoundingClientRect();
     if (!rect.width || !rect.height) return;
     sceneState.pointer.x = ((event.clientX - rect.left) / rect.width) * 2 - 1;
     sceneState.pointer.y = -(((event.clientY - rect.top) / rect.height) * 2 - 1);
   };
-  const onLeave = () => sceneState.pointer.set(0, 0);
-  entry.host.addEventListener('pointermove', onMove, { passive: true });
+
+  const onPointerDown = (event) => {
+    const active = activeForEntry();
+    if (!active?.inspection.enabled) return;
+    active.inspection.dragging = true;
+    active.inspection.lastX = event.clientX;
+    active.inspection.lastY = event.clientY;
+    entry.host.dataset.dragging = 'true';
+    entry.host.setPointerCapture?.(event.pointerId);
+    entry.host.focus?.({ preventScroll: true });
+    event.preventDefault?.();
+  };
+
+  const onPointerUp = (event) => {
+    const active = activeForEntry();
+    if (!active) return;
+    active.inspection.dragging = false;
+    entry.host.dataset.dragging = 'false';
+    entry.host.releasePointerCapture?.(event.pointerId);
+  };
+
+  const onWheel = (event) => {
+    const active = activeForEntry();
+    if (!active?.inspection.enabled) return;
+    setTargets({
+      yaw: active.inspection.targetYaw,
+      pitch: active.inspection.targetPitch,
+      distance: active.inspection.targetDistance + Math.sign(event.deltaY || 0) * 0.28
+    });
+    event.preventDefault?.();
+  };
+
+  const onKeyDown = (event) => {
+    const active = activeForEntry();
+    if (!active?.inspection.enabled) return;
+    const command = inspectionCommandForKey(event.key);
+    if (!command) return;
+    if (command.action === 'close') setInspectionMode(active, false);
+    else if (command.action === 'reset') resetInspection(active, active.reducedMotion.matches);
+    else {
+      const next = applyInspectionDelta({
+        yaw: active.inspection.targetYaw,
+        pitch: active.inspection.targetPitch,
+        distance: active.inspection.targetDistance
+      }, command);
+      setTargets(next);
+    }
+    event.preventDefault?.();
+  };
+
+  const onInspectClick = () => {
+    const active = activeForEntry();
+    if (active) setInspectionMode(active, true);
+  };
+  const onResetClick = () => {
+    const active = activeForEntry();
+    if (active) resetInspection(active, active.reducedMotion.matches);
+  };
+  const onCloseClick = () => {
+    const active = activeForEntry();
+    if (active) setInspectionMode(active, false);
+  };
+  const onLeave = () => {
+    sceneState.pointer.set(0, 0);
+    const active = activeForEntry();
+    if (active?.inspection.dragging) {
+      active.inspection.dragging = false;
+      entry.host.dataset.dragging = 'false';
+    }
+  };
+
+  entry.host.addEventListener('pointermove', onMove, { passive: false });
   entry.host.addEventListener('pointerleave', onLeave, { passive: true });
+  entry.host.addEventListener('pointerdown', onPointerDown, { passive: false });
+  entry.host.addEventListener('pointerup', onPointerUp, { passive: true });
+  entry.host.addEventListener('pointercancel', onPointerUp, { passive: true });
+  entry.host.addEventListener('wheel', onWheel, { passive: false });
+  entry.host.addEventListener('keydown', onKeyDown);
+  inspectButton?.addEventListener('click', onInspectClick);
+  resetButton?.addEventListener('click', onResetClick);
+  closeButton?.addEventListener('click', onCloseClick);
   let resizeObserver = null;
   let onWindowResize = null;
   if (window.ResizeObserver) {
@@ -973,7 +1185,24 @@ function activate(entry) {
     onWindowResize = resizeActive;
     window.addEventListener('resize', onWindowResize, { passive: true });
   }
-  runtime.active = { entry, ...sceneState, onMove, onLeave, resizeObserver, onWindowResize };
+  runtime.active = {
+    entry,
+    ...sceneState,
+    onMove,
+    onLeave,
+    onPointerDown,
+    onPointerUp,
+    onWheel,
+    onKeyDown,
+    onInspectClick,
+    onResetClick,
+    onCloseClick,
+    inspectButton,
+    resetButton,
+    closeButton,
+    resizeObserver,
+    onWindowResize
+  };
   resizeActive();
   applyCanonicalProjection(runtime.active);
   setStatus(entry, 'ready', '3D INSTRUMENT ONLINE');
@@ -1058,6 +1287,7 @@ export function getThreeRuntimeStatus() {
     activeMachine: runtime.active?.entry?.id || null,
     mountedViews: entries.size,
     contextLost: runtime.contextLost,
+    inspecting: runtime.active?.inspection?.enabled === true,
     projectedPhase: runtime.active?.entry?.host?.dataset?.machinePhase || null,
     unavailableReason: runtime.unavailableReason
   };

@@ -42,3 +42,6 @@ jobs:
 
       - name: Facility atmosphere QA
         run: npm run qa:facility-atmosphere
+
+      - name: Three.js inspection helper QA
+        run: npm run qa:three-inspection

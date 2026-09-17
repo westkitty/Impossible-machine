@@ -42,14 +42,19 @@ const assert = (condition, message) => {
 
 const host = dom.window.document.querySelector('.machine-three-view');
 const originalControl = dom.window.document.querySelector('#original-control');
+const inspectButton = dom.window.document.querySelector('.machine-three-inspect');
 const status = module.getThreeRuntimeStatus();
 
 assert(!!host, '3D enhancement host is mounted');
 assert(!!originalControl, 'original machine control remains present');
+assert(!!inspectButton, 'inspection control is structurally available');
+assert(inspectButton?.disabled === true, 'inspection control is disabled when WebGL is unavailable');
+assert(host?.dataset.inspecting === 'false', 'fallback host is not left in inspection mode');
 assert(host?.dataset.threeStatus === 'unavailable', 'host enters explicit unavailable fallback state');
 assert(host?.textContent.includes('INSTRUMENT CONTROLS REMAIN ACTIVE'), 'fallback tells the user controls remain active');
 assert(status.moduleLoaded === true, 'local Three.js module loads');
 assert(status.rendererCreated === false, 'renderer is not created without WebGL');
+assert(status.inspecting === false, 'runtime reports inspection inactive without WebGL');
 assert(status.mountedViews === 1, 'exactly one machine view is mounted');
 assert(!!status.unavailableReason, 'runtime exposes the fallback reason for diagnostics');
 
