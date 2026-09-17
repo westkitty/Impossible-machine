@@ -74,31 +74,32 @@ graph TD
 
 **Proof:** Runtime source inspection now; repeated lifecycle measurement will become mandatory before the full facility phase.
 
+### INV-3D-005 — Hidden puzzle rules are never reimplemented in Three.js
+
+When canonical machine code computes a derived value, recognition result, or secret rule, the 3D layer consumes only the resulting canonical state. It may not reproduce hidden formulas merely to animate the same concept. ORACLE's significance formula is the reference case.
+
 ## DEIMOS reference projection
 
 `projectDeimosState(state)` is the first reference adapter.
 
 Canonical inputs:
-
 - `state.machines.deimos.orientation`
 - `state.machines.deimos.safeOpen`
 
 Derived presentation outputs:
-
 - `orientationIndex` — bounded to `0..7`
 - `orientationRadians` — physical orientation in 45-degree increments
 - `triggerAligned` — true at canonical orientation index `5` (CEILING)
 - `safeOpen` — persistent canonical safe-open state
 - `phase` — `dormant`, `engaged`, or `aftermath`
 
-Important distinction: `triggerAligned` means the current orientation is the one that can open the safe. `safeOpen` means the canonical puzzle state records that the safe has already opened. The 3D safe should therefore remain physically open after discovery even if the chamber orientation later changes.
+Important distinction: `triggerAligned` means the current orientation is the one that can open the safe. `safeOpen` means the canonical puzzle state records that the safe has already opened. The 3D safe therefore remains physically open after discovery even if orientation later changes.
 
 ## CHRONOSTAT reference projection
 
-`projectChronostatState(state)` is the second state-driven adapter and preserves the same one-way authority boundary.
+`projectChronostatState(state)` is the second state-driven adapter.
 
 Canonical inputs:
-
 - `state.machines.chronostat.sent`
 - `state.machines.chronostat.inbox`
 - `state.machines.chronostat.roundTrips`
@@ -106,90 +107,106 @@ Canonical inputs:
 - `state.machines.chronostat.unlockedVerb`
 
 Derived presentation outputs:
-
-- `sentCount` and `inboxCount` — bounded observational counts used to identify a reply in flight
-- `waitingForReply` — true when the canonical sent count exceeds the inbox count before the final unlock
-- `roundTrips` — bounded to `0..6`
-- `shift` — bounded to `0..6`
-- `phaseOffsetRadians` — seven-phase physical offset derived from canonical shift
-- `signalStrength` — normalized progress from `0` to `1`
-- `drift` — true after temporal shift begins
-- `unlockedVerb` — canonical Verboten gate state
-- `phase` — `dormant`, `unstable`, `engaged`, or `aftermath`
+- `sentCount`, `inboxCount`, `waitingForReply`
+- bounded `roundTrips` and `shift`
+- `phaseOffsetRadians`, `signalStrength`, `drift`
+- `unlockedVerb`
+- `phase`
 
 Physical interpretation:
-
-- a reply in flight quantizes pendulum and phase-ring motion instead of inventing a new timer state;
+- a reply in flight quantizes pendulum and phase-ring motion;
 - the telegraph key visibly depresses while canonical state indicates a reply is outstanding;
 - completed round trips progressively light six physical markers;
 - canonical shift rotates the phase assembly through seven positions;
 - temporal echo pendulums become visible as the loop accumulates history;
-- the final canonical Verboten unlock stabilizes the signal plate and markers into an aftermath state.
+- the final canonical Verboten unlock stabilizes the machine.
 
-The physical projection deliberately does **not** reveal future-message text. It exposes timing, drift, progress, and unlock state already earned by the player without leaking the puzzle solution.
+The projection deliberately does **not** reveal future-message text.
 
 ## ATLAS reference projection
 
-`projectAtlasState(state)` is the third state-driven adapter. The canonical shape-recognition heuristic remains entirely in `src/machines/atlas.js`; Three.js only receives the resulting state and a bounded copy of player-authored geometry.
+`projectAtlasState(state)` is the third state-driven adapter. The canonical shape-recognition heuristic remains entirely in `src/machines/atlas.js`.
 
 Canonical inputs:
-
 - `state.machines.atlas.strokes`
 - `state.machines.atlas.lockedShapes`
 - `state.machines.atlas.openedSundial`
 
 Derived presentation outputs:
-
-- `strokeCount` — canonical stroke inventory size
-- `draftStrokeCount` — unlocked strokes still subject to the normal erase lifecycle
-- `lockedStrokeCount` — locked strokes already preserved by gameplay
-- `lockedShapeCount` — canonical lock count, bounded for presentation safety
-- `latestLockedPath` — an immutable, normalized copy of the latest locked stroke sampled to at most 48 points
-- `topologyStrength` — normalized visual intensity derived from locked-shape count
-- `openedSundial` — canonical door-unlock result from the existing recognition rule
-- `phase` — `dormant`, `engaged`, or `aftermath`
+- `strokeCount`, `draftStrokeCount`, `lockedStrokeCount`, `lockedShapeCount`
+- `latestLockedPath` — immutable normalized sample of at most 48 points
+- `topologyStrength`
+- `openedSundial`
+- `phase`
 
 Physical interpretation:
+- the latest locked player stroke wraps onto the globe as a false coastline/topological scar;
+- locked-shape progress activates incompatible topology rings;
+- draft activity affects a survey marker without making draft geometry permanent;
+- canonical Sundial unlock stabilizes the apparatus.
 
-- the latest locked player stroke is wrapped onto the 3D globe as a literal false coastline/topological scar;
-- locked-shape progress activates increasingly incompatible orbital/topology rings;
-- draft activity changes the roaming survey marker without making draft geometry permanent;
-- the canonical Sundial unlock stabilizes the apparatus and permanently changes its visual state;
-- Three.js never evaluates whether a stroke qualifies for the Sundial. It only consumes `openedSundial` after the canonical machine rule has decided it.
-
-This is the first machine where authored player geometry crosses into the 3D presentation. The projection therefore bounds point count and copies/clamps coordinates before rendering so arbitrary stroke size cannot become an unbounded per-frame payload.
+Three.js never evaluates whether a stroke qualifies for the Sundial.
 
 ## ARCHIVE reference projection
 
-`projectArchiveState(state)` is the fourth state-driven adapter. It deliberately separates identity revelation from puzzle solution because the canonical Archive state does not persist the player's current drag order.
+`projectArchiveState(state)` is the fourth state-driven adapter. It deliberately separates identity revelation from puzzle solution because canonical state does not persist the player's current drag order.
 
 Canonical inputs:
-
 - `state.machines.archive.revealed`
 - `state.machines.archive.solved`
 
 Derived presentation outputs:
-
-- `revealedIds` — immutable, de-duplicated, known staff IDs only
-- `revealedCount` — number of canonical identities revealed
-- `allRevealed` — true only when all six known identities have been revealed
-- `completion` — normalized reveal progress from `0` to `1`
-- `solved` — canonical result of the ordering puzzle
-- `phase` — `dormant`, `engaged`, or `aftermath`
+- immutable de-duplicated `revealedIds`
+- `revealedCount`, `allRevealed`, `completion`
+- `solved`
+- `phase`
 
 Physical interpretation:
+- six anonymous drawers emerge as identities are canonically revealed;
+- pre-solve cabinet geometry remains deliberately irregular;
+- all six drawers can be visible while unresolved;
+- only canonical `solved=true` closes, aligns, and stabilizes the cabinet.
 
-- six anonymous physical drawers emerge as identities are canonically revealed;
-- the pre-solve cabinet remains deliberately irregular, so revelation does not imply a correct ordering;
-- all six drawers can be visible while the machine remains visibly unresolved;
-- only canonical `solved=true` closes and geometrically aligns the cabinet, stabilizes its motion, and shifts the apparatus into its green aftermath state;
-- the 3D scene never stores, guesses, or reconstructs the player's transient drag order.
+The 3D scene never stores, guesses, or reconstructs transient drag order.
 
-The projector preserves `revealedIds` for identity-safe downstream use, but the current physical cabinet intentionally uses only count/progress/solved state so it cannot become a visual solution key.
+## ORACLE reference projection
+
+`projectOracleState(state)` is the fifth state-driven adapter. ORACLE establishes a stricter derived-state rule: the hidden significance calculation remains exclusively in `src/machines/oracle.js`. Three.js consumes only values that canonical gameplay has already persisted.
+
+Canonical inputs:
+- `state.machines.oracle.placed`
+- `state.machines.oracle.readings`
+- `state.discoveries.oracle_inverse`
+- `state.discoveries.oracle_significance`
+- `state.machines.oracle.openedDirector`
+
+Derived presentation outputs:
+- immutable unique known `placedIds`
+- immutable `readingEntries` containing only stored finite reading values plus bounded presentation normalization/polarity
+- `placedCount`, `readingCount`, positive/negative/zero reading counts
+- `balanceSignal` derived from the already-stored readings, bounded to presentation range
+- `inverseObserved`, `ruleLearned`, `openedDirector`
+- `phase`
+
+Physical interpretation:
+- the balance beam tilts from stored reading consequences, not from token true masses or significance scores;
+- placed-token markers float according to already-computed reading magnitude/polarity;
+- zero-reading objects visibly hover rather than pretending to have ordinary weight;
+- inverse-weight discovery exposes an oxide halo;
+- learning the significance rule changes the apparatus state without revealing the formula;
+- canonical Director unlock stabilizes the scale and shifts the apparatus to green aftermath.
+
+Forbidden duplication:
+- no `SIGNIFICANCE` table in Three.js;
+- no true-mass table in Three.js;
+- no recreation of the canonical reading formula in Three.js;
+- no inference that a token should unlock the Director independent of canonical `openedDirector`.
+
+This keeps the renderer capable of dramatizing the consequences of the Oracle while structurally unable to become a parallel implementation of its secret rule.
 
 ## Future machine adapters
 
-Every future machine must follow the same direction:
+Every future machine must follow:
 
 ```text
 canonical state
@@ -199,7 +216,7 @@ read-only projector
 physical Three.js state
 ```
 
-When 3D interaction is added later, it must route back through a semantic command:
+Future 3D interaction must route back through a semantic command:
 
 ```text
 3D hit target
@@ -220,7 +237,6 @@ Direct mutation of puzzle truth from mesh transforms, materials, animation state
 ## Validation gate for every new machine projection
 
 A machine projection is not complete until:
-
 1. the projector has focused tests;
 2. canonical state is proven unchanged by projection;
 3. existing core QA passes;
