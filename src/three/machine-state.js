@@ -10,6 +10,7 @@ const ATLAS_MAX_PATH_POINTS = 48;
 const ARCHIVE_STAFF_IDS = ['harker', 'pell', 'doss', 'mora', 'vance', 'yuen'];
 const ORACLE_TOKEN_IDS = ['ring', 'specs', 'photo', 'plumb', 'pulse', 'compass', 'glove', 'journal', 'cinder'];
 const VERBOTEN_MAX_PRINTS = 12;
+const SUNDIAL_GLYPH_COUNT = 7;
 
 function boundedInteger(value, min, max, fallback = min) {
   if (!Number.isInteger(value)) return fallback;
@@ -232,6 +233,28 @@ export function projectVerbotenState(state) {
   });
 }
 
+
+export function projectSundialState(state) {
+  const machine = state?.machines?.sundial || {};
+  const hour = boundedInteger(machine.hour, 0, 23, 12);
+  const glyphCount = Math.min(SUNDIAL_GLYPH_COUNT, arrayLength(machine.glyphs));
+  const codeReady = typeof machine.accessCode === 'string' && machine.accessCode.length > 0;
+  const reversalObserved = state?.discoveries?.sundial_reversal === true;
+  const used = machine.used === true;
+
+  return Object.freeze({
+    machineId: 'sundial',
+    hour,
+    shadowAngleRadians: hour * ((Math.PI * 2) / 24),
+    glyphCount,
+    glyphCompletion: glyphCount / SUNDIAL_GLYPH_COUNT,
+    codeReady,
+    reversalObserved,
+    used,
+    phase: used ? 'aftermath' : glyphCount > 0 || reversalObserved || codeReady ? 'engaged' : 'dormant'
+  });
+}
+
 export function projectMachineState(machineId, state) {
   switch (machineId) {
     case 'deimos':
@@ -246,6 +269,8 @@ export function projectMachineState(machineId, state) {
       return projectOracleState(state);
     case 'verboten':
       return projectVerbotenState(state);
+    case 'sundial':
+      return projectSundialState(state);
     default:
       return Object.freeze({ machineId, phase: 'idle' });
   }

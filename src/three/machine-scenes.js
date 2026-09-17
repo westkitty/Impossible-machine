@@ -624,20 +624,115 @@ function addVerboten(group, animate) {
 }
 
 function addSundial(group, animate) {
-  const disc = new THREE.Mesh(new THREE.CylinderGeometry(1.2, 1.2, 0.14, 48), mat(0x303329, 0.24, 0.82));
+  const machine = new THREE.Group();
+  const discMaterial = mat(0x303329, 0.24, 0.82, { emissive: 0x000000, emissiveIntensity: 0 });
+  const disc = new THREE.Mesh(new THREE.CylinderGeometry(1.2, 1.2, 0.14, 48), discMaterial);
   disc.rotation.x = Math.PI / 2;
+
   const rim = ring(1.2, C.brass, 0.04);
-  const gnomon = new THREE.Mesh(new THREE.ConeGeometry(0.13, 1.5, 4), mat(C.bone, 0.6, 0.3));
+  const gnomonMaterial = mat(C.bone, 0.6, 0.3, { emissive: 0x000000, emissiveIntensity: 0 });
+  const gnomon = new THREE.Mesh(new THREE.ConeGeometry(0.13, 1.5, 4), gnomonMaterial);
   gnomon.position.y = 0.68;
   gnomon.rotation.z = -0.38;
-  const shadow = new THREE.Mesh(new THREE.BoxGeometry(1.3, 0.018, 0.035), mat(C.oxide, 0.15, 0.8));
+
+  const shadowPivot = new THREE.Group();
+  const shadowMaterial = mat(C.oxide, 0.15, 0.8, { emissive: C.oxide, emissiveIntensity: 0.12 });
+  const shadow = new THREE.Mesh(new THREE.BoxGeometry(1.3, 0.018, 0.035), shadowMaterial);
   shadow.position.x = 0.65;
-  shadow.position.y = 0.09;
-  group.add(disc, rim, gnomon, shadow);
+  shadowPivot.add(shadow);
+
+  const reversalGhostMaterial = mat(C.bone, 0.02, 0.95, { transparent: true, opacity: 0.16, emissive: C.bone, emissiveIntensity: 0.06 });
+  const reversalGhost = new THREE.Mesh(new THREE.BoxGeometry(1.08, 0.012, 0.024), reversalGhostMaterial);
+  reversalGhost.position.x = 0.54;
+  reversalGhost.visible = false;
+  shadowPivot.add(reversalGhost);
+
+  const hourPins = [];
+  for (let i = 0; i < 24; i++) {
+    const angle = (i / 24) * Math.PI * 2;
+    const material = mat(C.iron, 0.28, 0.62, { emissive: C.brass, emissiveIntensity: 0.01 });
+    const pin = new THREE.Mesh(new THREE.SphereGeometry(i % 6 === 0 ? 0.045 : 0.026, 10, 8), material);
+    pin.position.set(Math.cos(angle) * 1.03, Math.sin(angle) * 1.03, 0.11);
+    machine.add(pin);
+    hourPins.push(pin);
+  }
+
+  const glyphMarkers = [];
+  for (let i = 0; i < 7; i++) {
+    const angle = -Math.PI * 0.78 + i * (Math.PI * 1.56 / 6);
+    const material = mat(C.iron, 0.28, 0.62, { emissive: C.brass, emissiveIntensity: 0.01 });
+    const marker = new THREE.Mesh(new THREE.BoxGeometry(0.16, 0.055, 0.045), material);
+    marker.position.set(Math.cos(angle) * 1.48, Math.sin(angle) * 1.48, 0.02);
+    marker.rotation.z = angle + Math.PI / 2;
+    machine.add(marker);
+    glyphMarkers.push(marker);
+  }
+
+  const irisMaterial = mat(C.dark, 0.34, 0.5, { emissive: C.brass, emissiveIntensity: 0.02 });
+  const iris = new THREE.Mesh(new THREE.TorusGeometry(0.31, 0.055, 12, 42), irisMaterial);
+  iris.position.z = 0.12;
+
+  machine.add(disc, rim, gnomon, shadowPivot, iris);
+  group.add(machine);
+
+  const targets = { shadowAngle: Math.PI, hour: 12, glyphCount: 0, glyphCompletion: 0, reversalObserved: false, codeReady: false, used: false };
+
   animate.push((t) => {
-    shadow.rotation.y = t * 0.16;
-    rim.rotation.z = Math.sin(t * 0.2) * 0.08;
+    const stability = targets.used ? 0.2 : 1;
+    let delta = targets.shadowAngle - shadowPivot.rotation.z;
+    delta = Math.atan2(Math.sin(delta), Math.cos(delta));
+    shadowPivot.rotation.z += delta * 0.085;
+    rim.rotation.z = Math.sin(t * 0.22) * 0.035 * stability;
+    iris.rotation.z = -t * (targets.codeReady ? 0.08 : 0.03 + targets.glyphCompletion * 0.08) * stability;
+    reversalGhost.rotation.z = targets.reversalObserved ? Math.sin(t * 0.9) * 0.035 : 0;
+    reversalGhost.material.opacity = targets.reversalObserved ? 0.12 + Math.abs(Math.sin(t * 1.3)) * 0.13 : 0;
+    glyphMarkers.forEach((marker, index) => {
+      if (index >= targets.glyphCount) return;
+      const pulse = targets.used ? 1 : 1 + Math.sin(t * 1.1 + index * 0.7) * 0.06;
+      marker.scale.setScalar(pulse);
+    });
   });
+
+  return {
+    applyState(projection) {
+      targets.shadowAngle = -projection.shadowAngleRadians;
+      targets.hour = projection.hour;
+      targets.glyphCount = projection.glyphCount;
+      targets.glyphCompletion = projection.glyphCompletion;
+      targets.reversalObserved = projection.reversalObserved;
+      targets.codeReady = projection.codeReady;
+      targets.used = projection.used;
+      reversalGhost.visible = projection.reversalObserved;
+
+      hourPins.forEach((pin, index) => {
+        const active = index === projection.hour;
+        const color = projection.used ? C.green : active ? C.oxide : C.iron;
+        pin.material.color.setHex(color);
+        pin.material.emissive.setHex(projection.used ? C.green : active ? C.oxide : C.brass);
+        pin.material.emissiveIntensity = active ? 0.62 : projection.used ? 0.08 : 0.01;
+      });
+
+      glyphMarkers.forEach((marker, index) => {
+        const active = index < projection.glyphCount;
+        const color = projection.used ? C.green : projection.codeReady && active ? C.bone : active ? C.brass : C.iron;
+        marker.material.color.setHex(color);
+        marker.material.emissive.setHex(projection.used ? C.green : C.brass);
+        marker.material.emissiveIntensity = active ? (projection.codeReady ? 0.72 : 0.38) : 0.01;
+      });
+
+      rim.material.color.setHex(projection.used ? C.green : C.brass);
+      shadowMaterial.color.setHex(projection.used ? C.green : C.oxide);
+      shadowMaterial.emissive.setHex(projection.used ? C.green : C.oxide);
+      shadowMaterial.emissiveIntensity = projection.used ? 0.28 : 0.12 + projection.glyphCompletion * 0.12;
+      irisMaterial.color.setHex(projection.codeReady ? (projection.used ? C.green : C.bone) : C.dark);
+      irisMaterial.emissive.setHex(projection.used ? C.green : C.brass);
+      irisMaterial.emissiveIntensity = projection.used ? 0.55 : projection.codeReady ? 0.42 : 0.02;
+      discMaterial.emissive.setHex(projection.used ? C.green : 0x000000);
+      discMaterial.emissiveIntensity = projection.used ? 0.055 : 0;
+      gnomonMaterial.emissive.setHex(projection.used ? C.green : 0x000000);
+      gnomonMaterial.emissiveIntensity = projection.used ? 0.08 : 0;
+    }
+  };
 }
 
 const builders = { deimos: addDeimos, chronostat: addChronostat, atlas: addAtlas, archive: addArchive, oracle: addOracle, verboten: addVerboten, sundial: addSundial };
@@ -802,6 +897,10 @@ function applyCanonicalProjection(active = runtime.active) {
   if (projection.capturedCount != null) active.entry.host.dataset.capturedCount = String(projection.capturedCount);
   if (projection.spent != null) active.entry.host.dataset.verbotenSpent = projection.spent ? 'true' : 'false';
   if (projection.openedDirector != null && active.entry.id === 'verboten') active.entry.host.dataset.verbotenDirectorOpened = projection.openedDirector ? 'true' : 'false';
+  if (projection.hour != null && active.entry.id === 'sundial') active.entry.host.dataset.sundialHour = String(projection.hour);
+  if (projection.glyphCount != null && active.entry.id === 'sundial') active.entry.host.dataset.sundialGlyphCount = String(projection.glyphCount);
+  if (projection.codeReady != null && active.entry.id === 'sundial') active.entry.host.dataset.sundialCodeReady = projection.codeReady ? 'true' : 'false';
+  if (projection.used != null && active.entry.id === 'sundial') active.entry.host.dataset.sundialUsed = projection.used ? 'true' : 'false';
 }
 
 function renderFrame(time = 0) {

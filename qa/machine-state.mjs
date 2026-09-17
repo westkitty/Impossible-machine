@@ -5,7 +5,9 @@ import {
   projectChronostatState,
   projectDeimosState,
   projectMachineState,
-  projectOracleState
+  projectOracleState,
+  projectSundialState,
+  projectVerbotenState
 } from '../src/three/machine-state.js';
 
 const failures = [];
@@ -205,6 +207,82 @@ assert(oracleSolved.phase === 'aftermath', 'ORACLE Director unlock projects as a
 assert(Object.isFrozen(oracleSolved), 'ORACLE projection object is immutable');
 assert(oracleBefore !== JSON.stringify(oracle), 'ORACLE test fixture itself changed as expected');
 
+
+// VERBOTEN
+const verboten = defaultState();
+const verbotenBefore = JSON.stringify(verboten);
+const verbotenInitial = projectVerbotenState(verboten);
+assert(verbotenInitial.printedCount === 0, 'VERBOTEN begins with zero anonymous print progress');
+assert(verbotenInitial.capturedCount === 0, 'VERBOTEN begins with zero anonymous witness progress');
+assert(verbotenInitial.spent === false, 'VERBOTEN begins unspent');
+assert(verbotenInitial.phase === 'dormant', 'VERBOTEN initial phase is dormant');
+
+verboten.machines.verboten.wordsPrinted = [
+  { ts: 1, word: 'ACCIDENT' },
+  { ts: 2, word: 'MALFUNCTION' },
+  { ts: 3, word: 'HARKER' }
+];
+verboten.machines.verboten.captures = { HARKER: 10, PELL: 20, INVALID: Number.NaN };
+const verbotenProgress = projectVerbotenState(verboten);
+assert(verbotenProgress.printedCount === 3, 'VERBOTEN projects anonymous print count without word content');
+assert(verbotenProgress.capturedCount === 2, 'VERBOTEN projects anonymous finite capture count');
+assert(Math.abs(verbotenProgress.printCompletion - 0.25) < 1e-12, 'VERBOTEN print completion is bounded to the 12-step ledger');
+assert(!JSON.stringify(verbotenProgress).includes('ACCIDENT'), 'VERBOTEN projection does not leak printed words');
+assert(!JSON.stringify(verbotenProgress).includes('HARKER'), 'VERBOTEN projection does not leak captured identity keys');
+
+verboten.machines.verboten.wordsPrinted = Array.from({ length: 20 }, (_, index) => ({ ts: index + 1, word: `SECRET-${index}` }));
+verboten.machines.verboten.openedDirector = true;
+const verbotenSolved = projectMachineState('verboten', verboten);
+assert(verbotenSolved.printedCount === 12, 'VERBOTEN invalid excess print history is bounded before rendering');
+assert(verbotenSolved.spent === true, 'VERBOTEN full anonymous print progress projects spent state');
+assert(verbotenSolved.openedDirector === true, 'VERBOTEN canonical Director unlock projects into Three.js state');
+assert(verbotenSolved.phase === 'aftermath', 'VERBOTEN Director unlock projects as aftermath');
+assert(Object.isFrozen(verbotenSolved), 'VERBOTEN projection object is immutable');
+assert(verbotenBefore !== JSON.stringify(verboten), 'VERBOTEN test fixture itself changed as expected');
+
+// SUNDIAL
+const sundial = defaultState();
+const sundialBefore = JSON.stringify(sundial);
+const sundialInitial = projectSundialState(sundial);
+assert(sundialInitial.hour === 12, 'SUNDIAL begins at canonical hour 12');
+assert(sundialInitial.glyphCount === 0, 'SUNDIAL begins with zero anonymous glyph progress');
+assert(sundialInitial.codeReady === false, 'SUNDIAL begins without a completed access code');
+assert(sundialInitial.used === false, 'SUNDIAL begins unused');
+assert(sundialInitial.phase === 'dormant', 'SUNDIAL initial phase is dormant');
+
+sundial.machines.sundial.hour = 9;
+sundial.machines.sundial.glyphs = ['H', 'P', 'D'];
+const sundialProgress = projectSundialState(sundial);
+assert(sundialProgress.hour === 9, 'SUNDIAL projects canonical retrograde hour');
+assert(Math.abs(sundialProgress.shadowAngleRadians - (9 * Math.PI * 2 / 24)) < 1e-12, 'SUNDIAL hour projects to expected dial angle');
+assert(sundialProgress.glyphCount === 3, 'SUNDIAL projects glyph count without glyph content');
+assert(Math.abs(sundialProgress.glyphCompletion - (3 / 7)) < 1e-12, 'SUNDIAL projects normalized anonymous glyph completion');
+assert(!('glyphs' in sundialProgress), 'SUNDIAL projection does not expose glyph characters');
+assert(sundialProgress.phase === 'engaged', 'SUNDIAL earned progress projects as engaged');
+
+sundial.machines.sundial.glyphs = ['H', 'P', 'D', 'M', 'V', 'Y', 'K'];
+sundial.machines.sundial.accessCode = 'HPDMVYK';
+sundial.discoveries.sundial_reversal = true;
+const sundialReady = projectSundialState(sundial);
+assert(sundialReady.glyphCount === 7, 'SUNDIAL full glyph progress projects as seven anonymous apertures');
+assert(sundialReady.codeReady === true, 'SUNDIAL completed canonical code projects as a boolean ready state');
+assert(sundialReady.reversalObserved === true, 'SUNDIAL canonical reversal discovery projects into Three.js state');
+assert(!JSON.stringify(sundialReady).includes('HPDMVYK'), 'SUNDIAL projection does not leak the access-code string');
+assert(!JSON.stringify(sundialReady).includes('"H"'), 'SUNDIAL projection does not leak individual glyph characters');
+
+sundial.machines.sundial.used = true;
+const sundialUsed = projectMachineState('sundial', sundial);
+assert(sundialUsed.used === true, 'SUNDIAL canonical successful code use projects into Three.js state');
+assert(sundialUsed.phase === 'aftermath', 'SUNDIAL successful code use projects as aftermath');
+assert(Object.isFrozen(sundialUsed), 'SUNDIAL projection object is immutable');
+
+sundial.machines.sundial.hour = 99;
+sundial.machines.sundial.glyphs = Array.from({ length: 20 }, () => 'X');
+const sundialBounded = projectSundialState(sundial);
+assert(sundialBounded.hour === 23, 'SUNDIAL invalid high hour is bounded before rendering');
+assert(sundialBounded.glyphCount === 7, 'SUNDIAL invalid excess glyph history is bounded before rendering');
+assert(sundialBefore !== JSON.stringify(sundial), 'SUNDIAL test fixture itself changed as expected');
+
 const unknown = projectMachineState('unknown-machine', base);
 assert(unknown.phase === 'idle', 'unknown machines receive inert projection state');
 
@@ -215,6 +293,8 @@ projectChronostatState(fresh);
 projectAtlasState(fresh);
 projectArchiveState(fresh);
 projectOracleState(fresh);
+projectVerbotenState(fresh);
+projectSundialState(fresh);
 assert(JSON.stringify(fresh) === freshBefore, 'machine projections do not mutate canonical state');
 assert(chronBefore !== JSON.stringify(chron), 'CHRONOSTAT test fixture itself changed as expected');
 
