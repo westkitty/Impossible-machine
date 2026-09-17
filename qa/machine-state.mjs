@@ -1,5 +1,6 @@
 import { defaultState } from '../src/state/store.js';
 import {
+  projectAtlasState,
   projectChronostatState,
   projectDeimosState,
   projectMachineState
@@ -78,6 +79,55 @@ const chronBounded = projectChronostatState(chron);
 assert(chronBounded.roundTrips === 6, 'CHRONOSTAT invalid high round-trip count is bounded before rendering');
 assert(chronBounded.shift === 6, 'CHRONOSTAT invalid high shift is bounded before rendering');
 
+// ATLAS
+const atlas = defaultState();
+const atlasBefore = JSON.stringify(atlas);
+const atlasInitial = projectAtlasState(atlas);
+assert(atlasInitial.strokeCount === 0, 'ATLAS begins with no projected strokes');
+assert(atlasInitial.lockedShapeCount === 0, 'ATLAS begins with no locked topology');
+assert(atlasInitial.latestLockedPath.length === 0, 'ATLAS begins without a physical coastline path');
+assert(atlasInitial.phase === 'dormant', 'ATLAS initial phase is dormant');
+
+atlas.machines.atlas.strokes.push({
+  id: 'draft',
+  locked: false,
+  t0: Date.now(),
+  points: [{ x: 0.1, y: 0.2 }, { x: 0.3, y: 0.4 }]
+});
+const atlasDraft = projectAtlasState(atlas);
+assert(atlasDraft.strokeCount === 1, 'ATLAS projects canonical draft stroke count');
+assert(atlasDraft.draftStrokeCount === 1, 'ATLAS distinguishes unlocked draft strokes');
+assert(atlasDraft.latestLockedPath.length === 0, 'ATLAS draft strokes do not become permanent coastline paths');
+assert(atlasDraft.phase === 'engaged', 'ATLAS drawing activity projects as engaged');
+
+const lockedPoints = Array.from({ length: 100 }, (_, index) => ({
+  x: index === 0 ? -1 : index / 99,
+  y: index === 99 ? 2 : (Math.sin(index / 99 * Math.PI * 2) + 1) / 2
+}));
+atlas.machines.atlas.strokes.push({
+  id: 'locked',
+  locked: true,
+  t0: Date.now(),
+  points: lockedPoints
+});
+atlas.machines.atlas.lockedShapes = 1;
+const atlasLocked = projectAtlasState(atlas);
+assert(atlasLocked.lockedStrokeCount === 1, 'ATLAS projects locked canonical stroke count');
+assert(atlasLocked.lockedShapeCount === 1, 'ATLAS projects canonical locked shape count');
+assert(atlasLocked.latestLockedPath.length === 48, 'ATLAS bounds the physical coastline sample to 48 points');
+assert(atlasLocked.latestLockedPath[0].x === 0, 'ATLAS clamps projected coastline coordinates');
+assert(atlasLocked.latestLockedPath[atlasLocked.latestLockedPath.length - 1].y === 1, 'ATLAS clamps projected coastline end coordinates');
+assert(Object.isFrozen(atlasLocked.latestLockedPath), 'ATLAS projected coastline array is immutable');
+assert(Object.isFrozen(atlasLocked.latestLockedPath[0]), 'ATLAS projected coastline points are immutable');
+assert(Math.abs(atlasLocked.topologyStrength - (1 / 3)) < 1e-12, 'ATLAS one locked shape projects to one-third topology strength');
+
+atlas.machines.atlas.openedSundial = true;
+const atlasSolved = projectMachineState('atlas', atlas);
+assert(atlasSolved.openedSundial === true, 'ATLAS canonical Sundial unlock projects into Three.js state');
+assert(atlasSolved.phase === 'aftermath', 'ATLAS Sundial unlock projects as aftermath');
+assert(Object.isFrozen(atlasSolved), 'ATLAS projection object is immutable');
+assert(atlasBefore !== JSON.stringify(atlas), 'ATLAS test fixture itself changed as expected');
+
 const unknown = projectMachineState('unknown-machine', base);
 assert(unknown.phase === 'idle', 'unknown machines receive inert projection state');
 
@@ -85,6 +135,7 @@ const fresh = defaultState();
 const freshBefore = JSON.stringify(fresh);
 projectDeimosState(fresh);
 projectChronostatState(fresh);
+projectAtlasState(fresh);
 assert(JSON.stringify(fresh) === freshBefore, 'machine projections do not mutate canonical state');
 assert(chronBefore !== JSON.stringify(chron), 'CHRONOSTAT test fixture itself changed as expected');
 
