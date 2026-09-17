@@ -219,55 +219,69 @@ function buildMap(store) {
         if (!unlocked || here) return;
         const ok = canTraverse(state.player.roomId, id, state);
         if (!ok.ok) {
-          store.bus.emit('notebook:auto', { title: `MAP — ${r.name} inaccessible`, body: explainLock(ok) });
+          store.bus.emit('notebook:auto', {
+            title: `MAP — can't reach ${r.name}`,
+            body: explainLock(ok)
+          });
           return;
         }
         store.set(s => { s.player.roomId = id; }, { silent: true });
         showRoom(store);
       }
-    }, [
-      document.createTextNode(`${here ? '▸' : visited ? '·' : '×'} ${r.name}`)
-    ]);
+    }, [document.createTextNode(visited || here ? r.name.toUpperCase() : '· · · · · · · ·')]);
     list.appendChild(row);
   }
   return list;
 }
 
 function buildDiscoveries(state) {
-  const entries = Object.entries(state.discoveries || {}).filter(([, v]) => v);
-  if (!entries.length) return el('div', { class: 'machine-meta', text: 'None logged.' });
-  return el('div', { style: { display: 'flex', flexDirection: 'column', gap: '6px' } },
-    entries.map(([k]) => el('div', { class: 'machine-meta', text: `• ${k.replaceAll('_', ' ')}` }))
-  );
+  const list = el('div', { style: { display: 'flex', flexDirection: 'column', gap: '2px', fontFamily: 'var(--mono)', fontSize: '10px', color: 'var(--ink-dim)', letterSpacing: '0.08em' } });
+  const items = [
+    ['GRAVITY FLIPPED',       state.discoveries.gravity_flip],
+    ['SAFE OPENED',           state.discoveries.safe_opened],
+    ['CHRONOSTAT — SENT',     state.discoveries.chronostat_sent],
+    ['CHRONOSTAT — DRIFT',    state.discoveries.chronostat_drift],
+    ['ATLAS — DRAWN',         state.discoveries.atlas_drawn],
+    ['ATLAS — LOCKED',        state.discoveries.atlas_lock],
+    ['ATLAS — ERASE SEEN',    state.discoveries.atlas_erase],
+    ['ARCHIVE — POLAROID',    state.discoveries.archive_polaroid],
+    ['ARCHIVE — SOLVED',      state.discoveries.archive_solved],
+    ['ORACLE — PLACED',       state.discoveries.oracle_place],
+    ['ORACLE — INVERSE',      state.discoveries.oracle_inverse],
+    ['ORACLE — RULE',         state.discoveries.oracle_significance],
+    ['VERBOTEN — FURNACE',    state.discoveries.verboten_furnace],
+    ['VERBOTEN — CAPTURE',    state.discoveries.verboten_capture],
+    ['VERBOTEN — SECRET',     state.discoveries.verboten_secret],
+    ['SUNDIAL — SHADOW',      state.discoveries.sundial_shadow],
+    ['SUNDIAL — CODE',        state.discoveries.sundial_code]
+  ];
+  for (const [label, on] of items) {
+    list.appendChild(el('div', {
+      text: (on ? '◉ ' : '◯ ') + label,
+      style: { color: on ? 'var(--accent)' : 'var(--ink-dim)' }
+    }));
+  }
+  return list;
 }
 
 function buildNotebookMini(store) {
-  const state = store.get();
-  const entries = (state.notebook?.entries || []).slice(-5).reverse();
-  if (!entries.length) return el('div', { class: 'machine-meta', text: 'Notebook empty.' });
-  return el('div', {}, entries.map(entry =>
-    el('div', { style: { marginBottom: '10px' } }, [
-      el('div', { class: 'machine-meta', text: entry.title || 'UNTITLED' }),
-      el('div', { text: entry.body || '', style: { fontSize: '12px', color: 'var(--ink-soft)' } })
-    ])
-  ));
-}
-
-function explainLock(ok) {
-  if (!ok) return 'Access denied.';
-  if (ok.reason) return ok.reason;
-  if (ok.missing) return `Missing requirement: ${ok.missing}`;
-  return 'Access denied by facility state.';
-}
-
-function arrow(dir) {
-  return ({ n: '↑', s: '↓', e: '→', w: '←', u: '↟', d: '↡' })[dir] || '·';
-}
-
-function setActive(label) {
-  for (const button of qsa('.title-bar nav button')) {
-    button.classList.toggle('active', button.textContent === label);
+  const wrap = el('div', { class: 'notebook-list' });
+  const entries = notebookView(store.get()).slice(0, 6);
+  if (entries.length === 0) {
+    wrap.appendChild(el('div', { class: 'readout', text: 'Empty notebook.' }));
+    return wrap;
   }
+  for (const e of entries) {
+    wrap.appendChild(el('div', { class: 'notebook-entry kind-' + e.kind }, [
+      el('div', { class: 'head' }, [
+        el('span', { text: e.kind }),
+        el('span', { text: new Date(e.ts).toLocaleTimeString() })
+      ]),
+      el('div', { class: 'title', text: e.title }),
+      el('div', { class: 'body', text: e.body })
+    ]));
+  }
+  return wrap;
 }
 
 function showArchive(store) {
@@ -275,120 +289,293 @@ function showArchive(store) {
   const main = qs('#main');
   clear(main);
   window.__archiveViewActive = true;
-
   const state = store.get();
-  const shell = el('div', { class: 'archive-shell' });
-  const search = el('input', { placeholder: 'Search archive…', value: '' });
-  const results = el('div');
+  const list = el('div', { class: 'archive-list' });
+  const reader = el('div', { class: 'archive-reader' });
 
-  const render = () => {
-    clear(results);
-    const query = search.value.trim();
-    const docs = query ? searchDocuments(store.get(), query) : allDocumentsForState(store.get());
-    for (const doc of docs) {
-      results.appendChild(el('button', {
-        class: 'archive-row',
-        text: `${doc.id} · ${doc.title}`,
-        onClick: () => showDocument(store, doc.id)
-      }));
+  const search = el('input', { type: 'text', placeholder: 'Search documents…' });
+  search.addEventListener('input', () => {
+    refreshList();
+  });
+
+  const refreshList = () => {
+    clear(list);
+    list.appendChild(el('div', { class: 'search' }, [search]));
+    const docs = allDocumentsForState(state);
+    let filtered = docs;
+    const q = search.value.trim();
+    if (q) {
+      const ranked = searchDocuments(state, q);
+      filtered = ranked;
     }
-    if (!docs.length) results.appendChild(el('div', { class: 'machine-meta', text: 'No matching records.' }));
+    if (filtered.length === 0) {
+      list.appendChild(el('div', { class: 'doc-row', text: '(no documents found)' }));
+      return;
+    }
+    for (const d of filtered) {
+      const row = el('div', {
+        class: 'doc-row',
+        onClick: () => {
+          qsa('.doc-row', list).forEach(r => r.classList.remove('active'));
+          row.classList.add('active');
+          renderReader(reader, d, store);
+        }
+      }, [
+        el('div', { text: d.title }),
+        el('div', { class: 'doc-kind', text: (d.kind || 'doc') + ' · ' + (d.room || '').toUpperCase() })
+      ]);
+      list.appendChild(row);
+    }
   };
+  refreshList();
 
-  search.addEventListener('input', render);
-  shell.append(
-    el('h1', { text: 'ARCHIVE' }),
-    el('div', { class: 'machine-meta', text: `${DOCUMENTS.length} catalogued records · visibility depends on state` }),
-    search,
-    results
-  );
-  main.appendChild(shell);
-  render();
+  if (allDocumentsForState(state).length > 0) {
+    renderReader(reader, allDocumentsForState(state)[0], store);
+    // mark first active
+    setTimeout(() => {
+      const first = list.querySelector('.doc-row');
+      if (first) first.classList.add('active');
+    }, 0);
+  } else {
+    reader.appendChild(el('div', { text: 'No documents available.' }));
+  }
+
+  const wrap = el('div', { class: 'archive-grid' }, [list, reader]);
+  main.appendChild(wrap);
+
+  store.bus.on('change', () => refreshList(), { once: false });
 }
 
 function refreshArchiveView(store) {
   if (!window.__archiveViewActive) return;
+  const main = qs('#main');
+  if (!main) return;
+  // simple: re-render the archive view
   showArchive(store);
 }
 
-function showDocument(store, id) {
-  const doc = documentById(store.get(), id);
+function renderReader(reader, doc, store) {
+  clear(reader);
   if (!doc) return;
-  const main = qs('#main');
-  clear(main);
-  const body = el('article', { class: 'document-view' }, [
-    el('button', { text: '← ARCHIVE', onClick: () => showArchive(store) }),
-    el('div', { class: 'machine-meta', text: doc.id }),
-    el('h1', { text: doc.title }),
-    el('pre', { text: doc.body || '' })
-  ]);
-  main.appendChild(body);
+  // mark read
+  store?.set(s => { s.archive_seen[doc.id] = true; }, { silent: true });
+  reader.appendChild(el('h1', { text: doc.title }));
+  reader.appendChild(el('div', { text: `${(doc.kind||'').toUpperCase()} · ${(doc.room||'').toUpperCase()}`, class: 'machine-meta' }));
+  const tags = el('div', { class: 'doc-tags' });
+  for (const t of (doc.tags || [])) tags.appendChild(el('span', { class: 'tag', text: t }));
+  reader.appendChild(tags);
+  for (const para of doc.body.split('\n')) {
+    reader.appendChild(el('p', { text: para }));
+  }
 }
 
 function showNotebook(store) {
   setActive('NOTEBOOK');
-  window.__archiveViewActive = false;
   const main = qs('#main');
   clear(main);
-  main.appendChild(notebookView(store.get(), store));
+  window.__archiveViewActive = false;
+  const state = store.get();
+
+  const left = el('aside', { class: 'panel' }, [
+    el('div', { class: 'machine-meta', text: 'NOTEBOOK' }),
+    el('p', { text: 'Your observations and inferences. Auto-entries are recorded automatically; you can add observations (what you saw) and inferences (what you think it means) by hand.' })
+  ]);
+
+  const stage = el('section', { class: 'stage', style: { padding: '24px', overflow: 'auto' } });
+  const list = el('div', { class: 'notebook-list' });
+  const entries = notebookView(state);
+  if (entries.length === 0) {
+    list.appendChild(el('div', { class: 'readout', text: 'Notebook is empty.' }));
+  } else {
+    for (const e of entries) {
+      list.appendChild(el('div', { class: 'notebook-entry kind-' + e.kind }, [
+        el('div', { class: 'head' }, [
+          el('span', { text: e.kind.toUpperCase() }),
+          el('span', { text: new Date(e.ts).toLocaleString() })
+        ]),
+        el('div', { class: 'title', text: e.title }),
+        el('div', { class: 'body', text: e.body })
+      ]));
+    }
+  }
+
+  const form = el('div', { class: 'notebook-form' }, [
+    el('label', { text: 'NEW ENTRY' }),
+    el('select', { id: 'nb-kind' }, [
+      el('option', { value: 'observation', text: 'Observation (what you saw)' }),
+      el('option', { value: 'inference',   text: 'Inference (what you think it means)' })
+    ]),
+    el('input', { id: 'nb-title', type: 'text', placeholder: 'Title' }),
+    el('textarea', { id: 'nb-body', placeholder: 'Note…', rows: 4 }),
+    el('button', { text: 'RECORD', onClick: () => {
+      const kind = qs('#nb-kind').value;
+      const title = qs('#nb-title').value || '(untitled)';
+      const body = qs('#nb-body').value || '';
+      store.set(s => addEntry(s, kind, title, body));
+      qs('#nb-title').value = '';
+      qs('#nb-body').value = '';
+      showNotebook(store);
+    } })
+  ]);
+
+  stage.appendChild(list);
+  stage.appendChild(form);
+
+  const wrap = el('div', { class: 'room' }, [left, stage, el('aside', { class: 'panel right' }, [
+    el('div', { class: 'machine-meta', text: 'SUMMARY' }),
+    el('div', { style: { fontFamily: 'var(--mono)', fontSize: '12px', color: 'var(--ink-soft)' } }, [
+      el('div', { text: `Auto: ${entries.filter(e => e.kind === 'auto').length}` }),
+      el('div', { text: `Observation: ${entries.filter(e => e.kind === 'observation').length}` }),
+      el('div', { text: `Inference: ${entries.filter(e => e.kind === 'inference').length}` }),
+      el('div', { text: `Total entries: ${entries.length}` })
+    ])
+  ])]);
+  main.appendChild(wrap);
 }
 
 function showOptions(store) {
   setActive('OPTIONS');
-  window.__archiveViewActive = false;
   const main = qs('#main');
   clear(main);
-  main.appendChild(el('div', { class: 'options-shell' }, [
-    el('h1', { text: 'OPTIONS' }),
-    el('p', { text: 'Facility state is stored locally in this browser.' }),
-    el('button', {
-      class: 'danger',
-      text: 'RESET FACILITY STATE',
-      onClick: () => {
-        localStorage.clear();
-        location.reload();
+  window.__archiveViewActive = false;
+  const stage = el('section', { class: 'stage', style: { padding: '32px', overflow: 'auto' } });
+  stage.appendChild(el('h1', { text: 'OPTIONS', class: 'room-title' }));
+  stage.appendChild(el('p', { text: 'Persistent state lives in your browser. Export it for backup, or reset to begin a new investigation.' }));
+
+  const expBtn = el('button', { text: 'EXPORT STATE (JSON)', onClick: () => {
+    const blob = new Blob([store.exportJson()], { type: 'application/json' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = 'impossible-machines-' + Date.now() + '.json';
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+  } });
+  const impBtn = el('button', { text: 'IMPORT STATE', onClick: () => {
+    const input = document.createElement('input');
+    input.type = 'file';
+    input.accept = 'application/json';
+    input.onchange = async () => {
+      const file = input.files[0];
+      if (!file) return;
+      const text = await file.text();
+      if (store.importJson(text)) {
+        showRoom(store);
       }
-    })
+    };
+    input.click();
+  } });
+  const resetBtn = el('button', { text: 'NEW INVESTIGATION (RESET)', class: 'danger', onClick: () => {
+    if (confirm('Begin a new investigation? This will erase current progress.')) {
+      store.reset();
+      showIntro(store);
+    }
+  } });
+
+  stage.appendChild(el('div', { style: { display: 'flex', gap: '8px' } }, [expBtn, impBtn, resetBtn]));
+  main.appendChild(el('div', { class: 'room' }, [
+    el('aside', { class: 'panel' }, [el('div', { class: 'machine-meta', text: 'FILE' })]),
+    stage,
+    el('aside', { class: 'panel right' })
   ]));
 }
 
-function renderEndingOverlay(store) {
-  const existing = qs('#ending-overlay');
-  const ending = store.get().ending;
-  if (!ending) {
-    existing?.remove();
-    return;
+function setActive(label) {
+  const nav = document.querySelector('.title-bar nav');
+  if (!nav) return;
+  for (const b of nav.children) {
+    b.classList.toggle('active', b.textContent === label);
   }
-  if (existing) return;
+}
 
-  const overlay = el('div', { id: 'ending-overlay', class: 'ending-overlay' }, [
-    el('div', { class: 'ending-card' }, [
-      el('div', { class: 'machine-meta', text: 'FACILITY TERMINAL CONDITION' }),
-      el('h1', { text: ending.title || ending.id || 'ENDING' }),
-      el('p', { text: ending.body || 'The department records your decision.' }),
-      el('button', { text: 'RETURN TO FACILITY', onClick: () => document.getElementById('ending-overlay')?.remove() })
-    ])
-  ]);
-  document.body.appendChild(overlay);
+function arrow(dir) {
+  return { n: '↑', s: '↓', e: '→', w: '←', ne: '↗', nw: '↖', se: '↘', sw: '↙' }[dir] || '·';
+}
+
+function explainLock(ok) {
+  if (!ok) return 'You cannot proceed.';
+  if (ok.reason === 'locked') return 'The door is locked.';
+  if (ok.reason === 'requires-machine-flag') {
+    return `Requires: ${ok.need.machine} to be ${ok.need.flag}.`;
+  }
+  if (ok.reason === 'requires-multi') {
+    return 'Multiple gates required: ' + Object.entries(ok.need).map(([k,v]) => `${k}=${v ? 'ok' : '?'}`).join(', ');
+  }
+  return 'Locked.';
 }
 
 function showIntro(store) {
-  const overlay = el('div', { class: 'intro-overlay' }, [
-    el('div', { class: 'intro-card' }, [
-      el('div', { class: 'machine-meta', text: 'DEPARTMENT OF IMPOSSIBLE MACHINES' }),
-      el('h1', { text: 'FACILITY 7-B' }),
-      el('p', { text: 'The building has been abandoned. The machines have not.' }),
-      el('button', {
-        class: 'primary',
-        text: 'ENTER',
-        onClick: () => {
-          store.set(s => { s.meta.hydrated = true; });
-          overlay.remove();
-        }
-      })
+  const overlay = el('div', { class: 'intro' });
+  overlay.appendChild(el('div', { class: 'panel' }, [
+    el('div', { class: 'pre', text: 'CASE FILE K-12 · UNREDACTED' }),
+    el('div', { class: 'stamp', text: 'SEALED — 1983 · REOPENED — TODAY' }),
+    el('h1', { text: 'THE DEPARTMENT OF IMPOSSIBLE MACHINES' }),
+    el('p', { text: 'You have inherited an underground government laboratory containing seven impossible machines. Nobody knows what all of them do. The previous staff disappeared.' }),
+    el('p', { text: 'Investigate the facility. Experiment with machines. Find internal documentation. Discover the relationships between systems. Determine what happened.' }),
+    el('div', { class: 'actions' }, [
+      el('button', { text: 'BEGIN INVESTIGATION', class: 'primary', onClick: () => {
+        document.body.removeChild(overlay);
+      } })
     ])
-  ]);
+  ]));
   document.body.appendChild(overlay);
 }
 
-init();
+function renderEndingOverlay(store) {
+  const state = store.get();
+  if (!state.meta.ending) {
+    const ex = document.querySelector('.ending');
+    if (ex) ex.remove();
+    return;
+  }
+  if (document.querySelector('.ending')) return;
+  const overlay = el('div', { class: 'ending' });
+  let body;
+  if (state.meta.ending === 'full') {
+    body = el('div', { class: 'panel' }, [
+      el('h1', { text: 'ENDING I — FULL RESTORATION' }),
+      el('p', { text: 'The lab hums. The seven machines settle into a low chorus. The polaroids on the corkboard click softly, in sequence. Harker. Pell. Doss. Mora. Vance. Yuen. The Director\'s office is empty. On the floor, a single fresh polaroid, dated today, with your name: I. YUEN — RETURNED.' }),
+      el('p', { text: 'You step out into the corridor. The doors do not close behind you.' }),
+      el('div', { style: { marginTop: '24px', display: 'flex', gap: '8px' } }, [
+        el('button', { text: 'CONTINUE INVESTIGATING', onClick: () => document.body.removeChild(overlay) }),
+        el('button', { text: 'NEW INVESTIGATION', class: 'danger', onClick: () => {
+          document.body.removeChild(overlay);
+          store.reset();
+          showIntro(store);
+        } })
+      ])
+    ]);
+  } else if (state.meta.ending === 'partial') {
+    body = el('div', { class: 'panel' }, [
+      el('h1', { text: 'ENDING II — PARTIAL RESTORATION' }),
+      el('p', { text: 'Power fails. The lights die in sequence. The CHRONOSTAT plate emits a final phrase you cannot decode. You are locked in.' }),
+      el('div', { style: { marginTop: '24px', display: 'flex', gap: '8px' } }, [
+        el('button', { text: 'CONTINUE INVESTIGATING', onClick: () => document.body.removeChild(overlay) }),
+        el('button', { text: 'NEW INVESTIGATION', class: 'danger', onClick: () => {
+          document.body.removeChild(overlay);
+          store.reset();
+          showIntro(store);
+        } })
+      ])
+    ]);
+  } else if (state.meta.ending === 'refused') {
+    body = el('div', { class: 'panel' }, [
+      el('h1', { text: 'ENDING III — REFUSED' }),
+      el('p', { text: 'You leave the facility without engaging. The doors reseal themselves. The machines keep humming, but for whom, now?' }),
+      el('div', { style: { marginTop: '24px', display: 'flex', gap: '8px' } }, [
+        el('button', { text: 'CONTINUE INVESTIGATING', onClick: () => document.body.removeChild(overlay) }),
+        el('button', { text: 'NEW INVESTIGATION', class: 'danger', onClick: () => {
+          document.body.removeChild(overlay);
+          store.reset();
+          showIntro(store);
+        } })
+      ])
+    ]);
+  }
+  overlay.appendChild(body);
+  document.body.appendChild(overlay);
+}
+
+document.addEventListener('DOMContentLoaded', init);
