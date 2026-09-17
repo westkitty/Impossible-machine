@@ -159,6 +159,34 @@ Physical interpretation:
 
 This is the first machine where authored player geometry crosses into the 3D presentation. The projection therefore bounds point count and copies/clamps coordinates before rendering so arbitrary stroke size cannot become an unbounded per-frame payload.
 
+## ARCHIVE reference projection
+
+`projectArchiveState(state)` is the fourth state-driven adapter. It deliberately separates identity revelation from puzzle solution because the canonical Archive state does not persist the player's current drag order.
+
+Canonical inputs:
+
+- `state.machines.archive.revealed`
+- `state.machines.archive.solved`
+
+Derived presentation outputs:
+
+- `revealedIds` — immutable, de-duplicated, known staff IDs only
+- `revealedCount` — number of canonical identities revealed
+- `allRevealed` — true only when all six known identities have been revealed
+- `completion` — normalized reveal progress from `0` to `1`
+- `solved` — canonical result of the ordering puzzle
+- `phase` — `dormant`, `engaged`, or `aftermath`
+
+Physical interpretation:
+
+- six anonymous physical drawers emerge as identities are canonically revealed;
+- the pre-solve cabinet remains deliberately irregular, so revelation does not imply a correct ordering;
+- all six drawers can be visible while the machine remains visibly unresolved;
+- only canonical `solved=true` closes and geometrically aligns the cabinet, stabilizes its motion, and shifts the apparatus into its green aftermath state;
+- the 3D scene never stores, guesses, or reconstructs the player's transient drag order.
+
+The projector preserves `revealedIds` for identity-safe downstream use, but the current physical cabinet intentionally uses only count/progress/solved state so it cannot become a visual solution key.
+
 ## Future machine adapters
 
 Every future machine must follow the same direction:
