@@ -93,6 +93,41 @@ Derived presentation outputs:
 
 Important distinction: `triggerAligned` means the current orientation is the one that can open the safe. `safeOpen` means the canonical puzzle state records that the safe has already opened. The 3D safe should therefore remain physically open after discovery even if the chamber orientation later changes.
 
+## CHRONOSTAT reference projection
+
+`projectChronostatState(state)` is the second state-driven adapter and preserves the same one-way authority boundary.
+
+Canonical inputs:
+
+- `state.machines.chronostat.sent`
+- `state.machines.chronostat.inbox`
+- `state.machines.chronostat.roundTrips`
+- `state.machines.chronostat.shift`
+- `state.machines.chronostat.unlockedVerb`
+
+Derived presentation outputs:
+
+- `sentCount` and `inboxCount` — bounded observational counts used to identify a reply in flight
+- `waitingForReply` — true when the canonical sent count exceeds the inbox count before the final unlock
+- `roundTrips` — bounded to `0..6`
+- `shift` — bounded to `0..6`
+- `phaseOffsetRadians` — seven-phase physical offset derived from canonical shift
+- `signalStrength` — normalized progress from `0` to `1`
+- `drift` — true after temporal shift begins
+- `unlockedVerb` — canonical Verboten gate state
+- `phase` — `dormant`, `unstable`, `engaged`, or `aftermath`
+
+Physical interpretation:
+
+- a reply in flight quantizes pendulum and phase-ring motion instead of inventing a new timer state;
+- the telegraph key visibly depresses while canonical state indicates a reply is outstanding;
+- completed round trips progressively light six physical markers;
+- canonical shift rotates the phase assembly through seven positions;
+- temporal echo pendulums become visible as the loop accumulates history;
+- the final canonical Verboten unlock stabilizes the signal plate and markers into an aftermath state.
+
+The physical projection deliberately does **not** reveal future-message text. It exposes timing, drift, progress, and unlock state already earned by the player without leaking the puzzle solution.
+
 ## Future machine adapters
 
 Every future machine must follow the same direction:

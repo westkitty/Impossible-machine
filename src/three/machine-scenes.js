@@ -101,11 +101,14 @@ function addDeimos(group, animate) {
 
 function addChronostat(group, animate) {
   const assembly = new THREE.Group();
+  const rings = [];
   for (let i = 0; i < 5; i++) {
     const r = ring(0.42 + i * 0.18, i === 2 ? C.oxide : C.brass, 0.018);
     r.rotation.set(Math.PI / 2 + i * 0.12, 0, i * 0.45);
     assembly.add(r);
+    rings.push({ mesh: r, baseZ: r.rotation.z });
   }
+
   const arm = new THREE.Mesh(new THREE.BoxGeometry(0.05, 1.55, 0.05), mat(C.bone, 0.6, 0.35));
   arm.position.y = -0.42;
   const bob = new THREE.Mesh(new THREE.SphereGeometry(0.22, 20, 14), mat(C.brass, 0.8, 0.24));
@@ -113,11 +116,111 @@ function addChronostat(group, animate) {
   const pendulum = new THREE.Group();
   pendulum.position.y = 0.68;
   pendulum.add(arm, bob);
-  group.add(assembly, pendulum);
-  animate.push((t) => {
-    assembly.rotation.y = t * 0.2;
-    pendulum.rotation.z = Math.sin(t * 1.4) * 0.5;
+
+  const echoes = [];
+  for (let i = 1; i <= 2; i++) {
+    const echoMaterial = mat(C.bone, 0.05, 0.7, { transparent: true, opacity: 0.06 + i * 0.025 });
+    const echoArm = new THREE.Mesh(new THREE.BoxGeometry(0.032, 1.48, 0.032), echoMaterial);
+    echoArm.position.y = -0.42;
+    const echoBob = new THREE.Mesh(
+      new THREE.SphereGeometry(0.16, 14, 10),
+      mat(C.brass, 0.05, 0.65, { transparent: true, opacity: 0.06 + i * 0.025 })
+    );
+    echoBob.position.y = -1.14;
+    const echo = new THREE.Group();
+    echo.position.y = 0.68;
+    echo.add(echoArm, echoBob);
+    echo.visible = false;
+    echoes.push(echo);
+    group.add(echo);
+  }
+
+  const plateMaterial = mat(C.dark, 0.18, 0.32, {
+    emissive: C.brass,
+    emissiveIntensity: 0.02
   });
+  const plate = new THREE.Mesh(new THREE.BoxGeometry(1.5, 0.62, 0.08), plateMaterial);
+  plate.position.set(0, 0.18, -0.92);
+
+  const keyBase = new THREE.Mesh(new THREE.BoxGeometry(0.92, 0.12, 0.46), mat(C.iron, 0.42, 0.62));
+  keyBase.position.set(-1.26, -1.12, 0.14);
+  const keyPivot = new THREE.Group();
+  keyPivot.position.set(-1.26, -1.02, 0.14);
+  const keyArm = new THREE.Mesh(new THREE.BoxGeometry(0.72, 0.07, 0.08), mat(C.brass, 0.7, 0.3));
+  keyArm.position.x = 0.25;
+  const keyCap = new THREE.Mesh(new THREE.CylinderGeometry(0.12, 0.12, 0.08, 18), mat(C.bone, 0.3, 0.5));
+  keyCap.rotation.x = Math.PI / 2;
+  keyCap.position.set(0.58, 0.02, 0);
+  keyPivot.add(keyArm, keyCap);
+
+  const markers = [];
+  for (let i = 0; i < 6; i++) {
+    const markerMaterial = mat(C.iron, 0.3, 0.52, {
+      emissive: C.brass,
+      emissiveIntensity: 0.02
+    });
+    const marker = new THREE.Mesh(new THREE.SphereGeometry(0.055, 12, 8), markerMaterial);
+    marker.position.set(-0.5 + i * 0.2, 1.34, 0.02);
+    markers.push(marker);
+    group.add(marker);
+  }
+
+  group.add(assembly, pendulum, plate, keyBase, keyPivot);
+
+  const targets = {
+    phaseOffset: 0,
+    signalStrength: 0,
+    waiting: false,
+    unlocked: false,
+    roundTrips: 0
+  };
+
+  animate.push((t) => {
+    const steppedTime = targets.waiting ? Math.floor(t * 8) / 8 : t;
+    const pendulumTime = targets.waiting ? Math.floor(t * 7) / 7 : t;
+    const frequency = targets.unlocked ? 1.4 : 1.4 + targets.roundTrips * 0.045;
+
+    assembly.rotation.y = steppedTime * 0.2 + targets.phaseOffset;
+    rings.forEach(({ mesh, baseZ }, index) => {
+      mesh.rotation.z = baseZ + Math.sin(steppedTime * (0.18 + index * 0.025)) * 0.035;
+    });
+
+    pendulum.rotation.z = Math.sin(pendulumTime * frequency) * 0.5;
+    echoes.forEach((echo, index) => {
+      const delay = (index + 1) * 0.085;
+      echo.rotation.z = Math.sin((pendulumTime - delay) * frequency) * 0.5;
+    });
+
+    const keyTarget = targets.waiting ? -0.22 : 0.02;
+    keyPivot.rotation.z += (keyTarget - keyPivot.rotation.z) * 0.18;
+
+    const pulse = targets.waiting ? 0.12 + Math.abs(Math.sin(t * 6)) * 0.24 : 0;
+    plateMaterial.emissiveIntensity = 0.03 + targets.signalStrength * 0.48 + pulse;
+  });
+
+  return {
+    applyState(projection) {
+      targets.phaseOffset = projection.phaseOffsetRadians;
+      targets.signalStrength = projection.signalStrength;
+      targets.waiting = projection.waitingForReply;
+      targets.unlocked = projection.unlockedVerb;
+      targets.roundTrips = projection.roundTrips;
+
+      plateMaterial.emissive.setHex(projection.unlockedVerb ? C.green : C.brass);
+      plateMaterial.color.setHex(projection.unlockedVerb ? 0x182118 : C.dark);
+
+      echoes.forEach((echo, index) => {
+        echo.visible = projection.roundTrips > index || projection.waitingForReply;
+      });
+
+      markers.forEach((marker, index) => {
+        const active = index < projection.roundTrips;
+        marker.material.color.setHex(active ? C.brass : C.iron);
+        marker.material.emissive.setHex(projection.unlockedVerb ? C.green : C.brass);
+        marker.material.emissiveIntensity = active ? 0.68 : 0.02;
+      });
+    }
+  };
 }
 
 function addAtlas(group, animate) {
@@ -412,6 +515,18 @@ function applyCanonicalProjection(active = runtime.active) {
   }
   if (projection.safeOpen != null) {
     active.entry.host.dataset.safeOpen = projection.safeOpen ? 'true' : 'false';
+  }
+  if (projection.roundTrips != null) {
+    active.entry.host.dataset.roundTrips = String(projection.roundTrips);
+  }
+  if (projection.shift != null) {
+    active.entry.host.dataset.temporalShift = String(projection.shift);
+  }
+  if (projection.waitingForReply != null) {
+    active.entry.host.dataset.waitingForReply = projection.waitingForReply ? 'true' : 'false';
+  }
+  if (projection.unlockedVerb != null) {
+    active.entry.host.dataset.verbotenUnlocked = projection.unlockedVerb ? 'true' : 'false';
   }
 }
 
