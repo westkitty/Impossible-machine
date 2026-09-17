@@ -1,6 +1,7 @@
 node_modules/
 .qa/node_modules/
 .qa/package.json
+.qa/package-lock.json
 *.log
 .DS_Store
 .cache/
