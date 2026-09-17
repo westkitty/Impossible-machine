@@ -224,24 +224,110 @@ function addChronostat(group, animate) {
 }
 
 function addAtlas(group, animate) {
-  const globe = new THREE.Mesh(new THREE.IcosahedronGeometry(0.95, 3), mat(0x1d2119, 0.05, 0.85));
+  const atlasFrame = new THREE.Group();
+  const globeMaterial = mat(0x1d2119, 0.05, 0.85, { emissive: 0x000000, emissiveIntensity: 0 });
+  const globe = new THREE.Mesh(new THREE.IcosahedronGeometry(0.95, 3), globeMaterial);
+  const wireMaterial = new THREE.LineBasicMaterial({ color: C.brass, transparent: true, opacity: 0.72 });
   const wire = new THREE.LineSegments(
     new THREE.WireframeGeometry(new THREE.IcosahedronGeometry(0.99, 2)),
-    new THREE.LineBasicMaterial({ color: C.brass, transparent: true, opacity: 0.72 })
+    wireMaterial
   );
-  const orbit = ring(1.35, C.bone, 0.018);
-  orbit.rotation.x = 1.05;
-  orbit.rotation.z = 0.4;
+
+  const topologyRings = [];
+  for (let i = 0; i < 3; i++) {
+    const topologyRing = ring(1.22 + i * 0.16, i === 1 ? C.bone : C.brass, 0.016);
+    topologyRing.rotation.set(0.72 + i * 0.31, i * 0.38, 0.35 + i * 0.44);
+    topologyRing.visible = false;
+    topologyRings.push(topologyRing);
+    atlasFrame.add(topologyRing);
+  }
+
+  const coastPositions = new Float32Array(48 * 3);
+  const coastGeometry = new THREE.BufferGeometry();
+  const coastAttribute = new THREE.BufferAttribute(coastPositions, 3);
+  coastGeometry.setAttribute('position', coastAttribute);
+  coastGeometry.setDrawRange(0, 0);
+  const coastMaterial = new THREE.LineBasicMaterial({ color: C.brass, transparent: true, opacity: 0.82 });
+  const coastLine = new THREE.Line(coastGeometry, coastMaterial);
+  coastLine.visible = false;
+
   const marker = new THREE.Mesh(
     new THREE.SphereGeometry(0.07, 12, 8),
     mat(C.oxide, 0.2, 0.5, { emissive: C.oxide, emissiveIntensity: 0.35 })
   );
-  group.add(globe, wire, orbit, marker);
+
+  atlasFrame.add(globe, wire, coastLine, marker);
+  group.add(atlasFrame);
+
+  const targets = {
+    topologyStrength: 0,
+    lockedShapeCount: 0,
+    draftStrokeCount: 0,
+    openedSundial: false
+  };
+
   animate.push((t) => {
-    globe.rotation.y = wire.rotation.y = t * 0.1;
-    orbit.rotation.z = 0.4 + t * 0.12;
-    marker.position.set(Math.cos(t * 0.6) * 1.22, Math.sin(t * 0.45) * 0.62, Math.sin(t * 0.6) * 1.22);
+    const stability = targets.openedSundial ? 0.35 : 1;
+    globe.rotation.y = t * (0.075 + targets.topologyStrength * 0.05) * stability;
+    wire.rotation.y = globe.rotation.y;
+    wire.rotation.z = Math.sin(t * 0.26) * targets.topologyStrength * 0.16 * stability;
+
+    topologyRings.forEach((topologyRing, index) => {
+      if (!topologyRing.visible) return;
+      const direction = index % 2 === 0 ? 1 : -1;
+      topologyRing.rotation.z += direction * (0.0018 + targets.topologyStrength * 0.0024) * stability;
+      topologyRing.rotation.x += Math.sin(t * (0.19 + index * 0.035)) * 0.0007 * targets.topologyStrength;
+    });
+
+    const orbitRate = targets.openedSundial ? 0.18 : 0.56 + targets.draftStrokeCount * 0.035;
+    marker.position.set(
+      Math.cos(t * orbitRate) * 1.22,
+      Math.sin(t * orbitRate * 0.73) * (0.38 + targets.topologyStrength * 0.28),
+      Math.sin(t * orbitRate) * 1.22
+    );
+
+    const breathe = 1 + Math.sin(t * 0.9) * targets.topologyStrength * 0.018 * stability;
+    atlasFrame.scale.setScalar(breathe);
   });
+
+  return {
+    applyState(projection) {
+      targets.topologyStrength = projection.topologyStrength;
+      targets.lockedShapeCount = projection.lockedShapeCount;
+      targets.draftStrokeCount = projection.draftStrokeCount;
+      targets.openedSundial = projection.openedSundial;
+
+      topologyRings.forEach((topologyRing, index) => {
+        topologyRing.visible = projection.lockedShapeCount > index;
+        topologyRing.material.color.setHex(projection.openedSundial ? C.green : (index === 1 ? C.bone : C.brass));
+      });
+
+      const path = projection.latestLockedPath || [];
+      coastGeometry.setDrawRange(0, Math.min(path.length, 48));
+      coastLine.visible = path.length >= 2;
+      for (let i = 0; i < Math.min(path.length, 48); i++) {
+        const point = path[i];
+        const longitude = (point.x - 0.5) * Math.PI * 2;
+        const latitude = (0.5 - point.y) * Math.PI * 0.9;
+        const radius = 1.025 + projection.topologyStrength * 0.035;
+        const cosLat = Math.cos(latitude);
+        coastPositions[i * 3] = radius * cosLat * Math.cos(longitude);
+        coastPositions[i * 3 + 1] = radius * Math.sin(latitude);
+        coastPositions[i * 3 + 2] = radius * cosLat * Math.sin(longitude);
+      }
+      coastAttribute.needsUpdate = true;
+
+      const solvedColor = projection.openedSundial ? C.green : C.brass;
+      coastMaterial.color.setHex(solvedColor);
+      coastMaterial.opacity = projection.openedSundial ? 1 : 0.82;
+      wireMaterial.color.setHex(solvedColor);
+      wireMaterial.opacity = projection.openedSundial ? 0.92 : 0.72;
+      globeMaterial.emissive.setHex(projection.openedSundial ? C.green : 0x000000);
+      globeMaterial.emissiveIntensity = projection.openedSundial ? 0.08 : 0;
+      marker.material.emissive.setHex(projection.openedSundial ? C.green : C.oxide);
+      marker.material.emissiveIntensity = projection.openedSundial ? 0.55 : 0.35;
+    }
+  };
 }
 
 function addArchive(group, animate) {
@@ -527,6 +613,15 @@ function applyCanonicalProjection(active = runtime.active) {
   }
   if (projection.unlockedVerb != null) {
     active.entry.host.dataset.verbotenUnlocked = projection.unlockedVerb ? 'true' : 'false';
+  }
+  if (projection.strokeCount != null) {
+    active.entry.host.dataset.strokeCount = String(projection.strokeCount);
+  }
+  if (projection.lockedShapeCount != null) {
+    active.entry.host.dataset.lockedShapes = String(projection.lockedShapeCount);
+  }
+  if (projection.openedSundial != null) {
+    active.entry.host.dataset.sundialOpened = projection.openedSundial ? 'true' : 'false';
   }
 }
 

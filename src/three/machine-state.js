@@ -6,6 +6,7 @@ const DEIMOS_ORIENTATION_COUNT = 8;
 const QUARTER_TURN = Math.PI / 4;
 const CHRONOSTAT_MAX_ROUND_TRIPS = 6;
 const CHRONOSTAT_PHASE_COUNT = 7;
+const ATLAS_MAX_PATH_POINTS = 48;
 
 function boundedInteger(value, min, max, fallback = min) {
   if (!Number.isInteger(value)) return fallback;
@@ -14,6 +15,32 @@ function boundedInteger(value, min, max, fallback = min) {
 
 function arrayLength(value) {
   return Array.isArray(value) ? value.length : 0;
+}
+
+function clamp01(value) {
+  if (!Number.isFinite(value)) return 0;
+  return Math.min(1, Math.max(0, value));
+}
+
+function freezePoint(point) {
+  return Object.freeze({ x: clamp01(point?.x), y: clamp01(point?.y) });
+}
+
+function sampleAtlasPath(points, maxPoints = ATLAS_MAX_PATH_POINTS) {
+  const valid = Array.isArray(points)
+    ? points.filter((point) => Number.isFinite(point?.x) && Number.isFinite(point?.y))
+    : [];
+
+  if (valid.length === 0) return Object.freeze([]);
+  if (valid.length <= maxPoints) return Object.freeze(valid.map(freezePoint));
+
+  const sampled = [];
+  const lastIndex = valid.length - 1;
+  for (let i = 0; i < maxPoints; i++) {
+    const sourceIndex = Math.round((i / (maxPoints - 1)) * lastIndex);
+    sampled.push(freezePoint(valid[sourceIndex]));
+  }
+  return Object.freeze(sampled);
 }
 
 export function projectDeimosState(state) {
@@ -66,12 +93,41 @@ export function projectChronostatState(state) {
   });
 }
 
+export function projectAtlasState(state) {
+  const machine = state?.machines?.atlas || {};
+  const strokes = Array.isArray(machine.strokes) ? machine.strokes : [];
+  const lockedStrokes = strokes.filter((stroke) => stroke?.locked === true);
+  const latestLocked = lockedStrokes[lockedStrokes.length - 1] || null;
+  const lockedShapeCount = boundedInteger(machine.lockedShapes, 0, 999, 0);
+  const openedSundial = machine.openedSundial === true;
+  const draftStrokeCount = strokes.reduce((count, stroke) => count + (stroke?.locked === true ? 0 : 1), 0);
+  const latestLockedPath = sampleAtlasPath(latestLocked?.points);
+
+  return Object.freeze({
+    machineId: 'atlas',
+    strokeCount: strokes.length,
+    draftStrokeCount,
+    lockedStrokeCount: lockedStrokes.length,
+    lockedShapeCount,
+    openedSundial,
+    latestLockedPath,
+    topologyStrength: Math.min(1, lockedShapeCount / 3),
+    phase: openedSundial
+      ? 'aftermath'
+      : strokes.length > 0 || lockedShapeCount > 0
+        ? 'engaged'
+        : 'dormant'
+  });
+}
+
 export function projectMachineState(machineId, state) {
   switch (machineId) {
     case 'deimos':
       return projectDeimosState(state);
     case 'chronostat':
       return projectChronostatState(state);
+    case 'atlas':
+      return projectAtlasState(state);
     default:
       return Object.freeze({ machineId, phase: 'idle' });
   }
