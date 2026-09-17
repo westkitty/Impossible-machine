@@ -45,3 +45,6 @@ jobs:
 
       - name: Three.js inspection helper QA
         run: npm run qa:three-inspection
+
+      - name: Three.js lifecycle policy QA
+        run: npm run qa:three-lifecycle

@@ -1,5 +1,6 @@
 import { projectMachineState } from './machine-state.js';
 import { INSPECTION_LIMITS, normalizeInspectionState, inspectionCommandForKey, applyInspectionDelta, interpolateInspectionState } from './inspection.js';
+import { selectQualityTier, pixelRatioForTier, targetFrameMsForTier, parallaxScaleForTier, composePauseReasons } from './runtime-policy.js';
 
 const THREE_MODULE_URL = new URL('./vendor/three.module.js', import.meta.url).href;
 const MACHINE_IDS = ['deimos', 'chronostat', 'atlas', 'archive', 'oracle', 'verboten', 'sundial'];
@@ -26,7 +27,14 @@ const runtime = {
   unavailableReason: null,
   onContextLost: null,
   onContextRestored: null,
-  onPageHide: null
+  onPageHide: null,
+  qualityTier: 'STANDARD',
+  pixelRatio: 1,
+  viewportVisible: true,
+  frameMsEma: null,
+  framesRendered: 0,
+  lastFrameTime: null,
+  lastRenderedAt: null
 };
 
 let THREE = null;
@@ -852,7 +860,7 @@ function ensureRenderer() {
   if (!context) throw new Error('Unable to create a WebGL context');
   const renderer = new THREE.WebGLRenderer({ canvas, context, ...attrs });
   renderer.outputColorSpace = THREE.SRGBColorSpace;
-  renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 1.75));
+  renderer.setPixelRatio(runtime.pixelRatio);
   runtime.renderer = renderer;
   return renderer;
 }
@@ -905,10 +913,21 @@ function createScene(id) {
 
 function resizeActive() {
   if (!runtime.active || !runtime.renderer) return;
-  const { entry, camera } = runtime.active;
+  const { entry, camera, reducedMotion } = runtime.active;
   const rect = entry.host.getBoundingClientRect();
   const width = Math.max(1, Math.round(rect.width));
   const height = Math.max(1, Math.round(rect.height));
+  const navigatorInfo = window.navigator || {};
+  runtime.qualityTier = selectQualityTier({
+    reducedMotion: reducedMotion?.matches === true,
+    devicePixelRatio: window.devicePixelRatio || 1,
+    hardwareConcurrency: navigatorInfo.hardwareConcurrency,
+    deviceMemory: navigatorInfo.deviceMemory,
+    pixelArea: width * height
+  });
+  runtime.pixelRatio = pixelRatioForTier(runtime.qualityTier, window.devicePixelRatio || 1);
+  entry.host.dataset.qualityTier = runtime.qualityTier;
+  runtime.renderer.setPixelRatio(runtime.pixelRatio);
   runtime.renderer.setSize(width, height, false);
   camera.aspect = width / height;
   camera.updateProjectionMatrix();
@@ -980,9 +999,19 @@ function applyCanonicalProjection(active = runtime.active) {
 
 function renderFrame(time = 0) {
   const active = runtime.active;
-  if (!active || !runtime.renderer || runtime.contextLost) return;
+  if (!active || !runtime.renderer) return;
   if (!active.entry.root.isConnected) { deactivateActive(); return; }
-  if (document.hidden) return;
+
+  const pauseReasons = composePauseReasons({
+    contextLost: runtime.contextLost,
+    documentHidden: document.hidden === true,
+    viewportVisible: runtime.viewportVisible
+  });
+  if (pauseReasons.length) return;
+
+  const targetFrameMs = targetFrameMsForTier(runtime.qualityTier);
+  if (targetFrameMs > 0 && runtime.lastRenderedAt != null && time - runtime.lastRenderedAt < targetFrameMs) return;
+
   applyCanonicalProjection(active);
   const speed = active.reducedMotion.matches ? 0.12 : 1;
   const t = (time / 1000) * speed;
@@ -1008,12 +1037,21 @@ function renderFrame(time = 0) {
   active.inspectionRig.rotation.y = nextInspection.yaw;
   active.camera.position.z = nextInspection.distance;
 
-  const cameraX = active.inspection.enabled ? 0 : active.pointer.x * 0.38;
-  const cameraY = active.inspection.enabled ? 0.2 : 0.2 + active.pointer.y * 0.2;
+  const parallaxScale = parallaxScaleForTier(runtime.qualityTier);
+  const cameraX = active.inspection.enabled ? 0 : active.pointer.x * 0.38 * parallaxScale;
+  const cameraY = active.inspection.enabled ? 0.2 : 0.2 + active.pointer.y * 0.2 * parallaxScale;
   active.camera.position.x += (cameraX - active.camera.position.x) * 0.035;
   active.camera.position.y += (cameraY - active.camera.position.y) * 0.035;
   active.camera.lookAt(0, -0.04, 0);
   runtime.renderer.render(active.scene, active.camera);
+
+  if (runtime.lastFrameTime != null) {
+    const frameMs = Math.max(0, time - runtime.lastFrameTime);
+    runtime.frameMsEma = runtime.frameMsEma == null ? frameMs : runtime.frameMsEma * 0.9 + frameMs * 0.1;
+  }
+  runtime.lastFrameTime = time;
+  runtime.lastRenderedAt = time;
+  runtime.framesRendered += 1;
 }
 
 function deactivateActive() {
@@ -1032,9 +1070,13 @@ function deactivateActive() {
   active.inspectButton?.removeEventListener('click', active.onInspectClick);
   active.resetButton?.removeEventListener('click', active.onResetClick);
   active.closeButton?.removeEventListener('click', active.onCloseClick);
+  active.intersectionObserver?.disconnect?.();
   disposeObject(active.scene);
   runtime.canvas?.remove();
   runtime.active = null;
+  runtime.viewportVisible = true;
+  runtime.lastFrameTime = null;
+  runtime.lastRenderedAt = null;
 }
 
 function activate(entry) {
@@ -1201,8 +1243,21 @@ function activate(entry) {
     resetButton,
     closeButton,
     resizeObserver,
-    onWindowResize
+    onWindowResize,
+    intersectionObserver: null
   };
+
+  runtime.viewportVisible = true;
+  if (window.IntersectionObserver) {
+    const intersectionObserver = new window.IntersectionObserver((records) => {
+      const record = records.find((item) => item.target === entry.host);
+      if (!record || runtime.active?.entry !== entry) return;
+      runtime.viewportVisible = record.isIntersecting !== false && record.intersectionRatio !== 0;
+    }, { threshold: 0.01 });
+    intersectionObserver.observe(entry.host);
+    runtime.active.intersectionObserver = intersectionObserver;
+  }
+
   resizeActive();
   applyCanonicalProjection(runtime.active);
   setStatus(entry, 'ready', '3D INSTRUMENT ONLINE');
@@ -1258,6 +1313,33 @@ function shutdown() {
     runtime.canvas = null;
   }
   entries.clear();
+  runtime.viewportVisible = true;
+  runtime.lastFrameTime = null;
+  runtime.lastRenderedAt = null;
+}
+
+function rendererInfoSnapshot() {
+  const info = runtime.renderer?.info;
+  if (!info) {
+    return {
+      geometries: 0,
+      textures: 0,
+      programs: 0,
+      calls: 0,
+      triangles: 0,
+      points: 0,
+      lines: 0
+    };
+  }
+  return {
+    geometries: info.memory?.geometries || 0,
+    textures: info.memory?.textures || 0,
+    programs: Array.isArray(info.programs) ? info.programs.length : 0,
+    calls: info.render?.calls || 0,
+    triangles: info.render?.triangles || 0,
+    points: info.render?.points || 0,
+    lines: info.render?.lines || 0
+  };
 }
 
 function boot() {
@@ -1280,6 +1362,11 @@ export function startMachineThreeEnhancement() { boot(); }
 
 export function getThreeRuntimeStatus() {
   pruneEntries();
+  const pauseReasons = composePauseReasons({
+    contextLost: runtime.contextLost,
+    documentHidden: document.hidden === true,
+    viewportVisible: runtime.viewportVisible
+  });
   return {
     started: runtime.started,
     moduleLoaded: !!runtime.THREE,
@@ -1288,6 +1375,14 @@ export function getThreeRuntimeStatus() {
     mountedViews: entries.size,
     contextLost: runtime.contextLost,
     inspecting: runtime.active?.inspection?.enabled === true,
+    qualityTier: runtime.qualityTier,
+    pixelRatio: runtime.pixelRatio,
+    viewportVisible: runtime.viewportVisible,
+    paused: pauseReasons.length > 0,
+    pauseReasons,
+    frameMsEma: runtime.frameMsEma,
+    framesRendered: runtime.framesRendered,
+    rendererInfo: rendererInfoSnapshot(),
     projectedPhase: runtime.active?.entry?.host?.dataset?.machinePhase || null,
     unavailableReason: runtime.unavailableReason
   };
