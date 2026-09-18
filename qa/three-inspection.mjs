@@ -54,11 +54,11 @@ assert(inspectionCommandForKey('Escape')?.action === 'close', 'Escape maps to cl
 assert(inspectionCommandForKey('R')?.action === 'reset', 'R maps to reset action');
 assert(inspectionCommandForKey('x') === null, 'unrelated keys are ignored');
 assert(
-  /\\.machine-three-inspection-toolbar\\{[^}]*top:8px/.test(source),
+  source.includes('.machine-three-inspection-toolbar{display:none;position:absolute;z-index:5;right:10px;top:8px;'),
   'inspection toolbar is pinned to the visible top edge'
 );
 assert(
-  !/\\.machine-three-inspection-toolbar\\{[^}]*bottom:10px/.test(source),
+  !source.includes('.machine-three-inspection-toolbar{display:none;position:absolute;z-index:5;right:10px;bottom:10px;'),
   'inspection toolbar no longer depends on an offscreen bottom edge'
 );
 assert(
