@@ -7,12 +7,12 @@
   "project_name": "The Department of Impossible Machines",
   "project_root": ".",
   "artifact_path": "",
-  "state_revision": 9,
-  "last_updated": "2026-09-17T23:07:00Z",
+  "state_revision": 10,
+  "last_updated": "2026-09-18T00:04:00Z",
   "current_baseline": {
-    "identity": "main bd3de1ae9e3ee49dc094cc3a8d8bfa18663ab68a merged and deployed with all seven state-driven Three.js machine projections",
+    "identity": "main 5df51a05b7baa8f1666d2518b8030a654a026e9c merged and deployed with seven state-driven machines plus dynamic Facility 7-B presentation/runtime expansion",
     "state": "partially-verified",
-    "last_verified": "main QA 35285227690; Pages 35285227621; final branch QA 35285129004"
+    "last_verified": "main QA 35289439286; Pages 35289439168; PR QA 35289340094"
   },
   "scope_boundaries": ["Browser mystery application and GitHub Pages deployment"],
   "linked_parent_state": null
@@ -25,9 +25,11 @@ The Department of Impossible Machines is a browser mystery set in Facility 7-B. 
 
 ## 2. Current Baseline
 
-`main` at `bd3de1ae9e3ee49dc094cc3a8d8bfa18663ab68a` contains the production-safe local Three.js runtime plus state-driven DEIMOS, CHRONOSTAT, ATLAS, ARCHIVE, ORACLE, VERBOTEN, and SUNDIAL projections. GitHub Actions QA run `35285227690` and Pages deployment `35285227621` both completed successfully on that exact SHA.
+`main` at `5df51a05b7baa8f1666d2518b8030a654a026e9c` contains the production-safe local Three.js runtime, all seven canonical-state-driven machine projections, state-driven Facility 7-B atmosphere, semantic facility navigation, presentation-only apparatus inspection, adaptive ECO/STANDARD/HIGH rendering policy, offscreen rendering suspension, and local runtime telemetry.
 
-The seven-machine projection architecture is complete at the non-GPU evidence level. Canonical puzzle rules remain in the existing state/machine modules; Three.js consumes immutable read-only projections. Real WebGL visual correctness, lifecycle behavior under repeated traversal, and target-device performance remain pending evidence rather than assumed completion.
+GitHub Actions QA run `35289439286` and Pages deployment `35289439168` both completed successfully on that exact SHA. The QA matrix now includes core tests, browser flow, full-mystery playthrough, Three.js fallback, seven-machine projection tests, facility-atmosphere tests, apparatus-inspection helper tests, and lifecycle/runtime-policy tests.
+
+Real WebGL appearance, pointer/touch inspection behavior on a GPU-backed browser, repeated GPU resource lifecycle behavior, context restoration under real WebGL, and target-device performance remain pending evidence rather than assumed completion.
 
 ## 3. Artifact Contract
 
@@ -79,6 +81,24 @@ Preserve the existing mystery, room traversal, persistence, archive, notebook, e
 - Glyph characters and the access-code string do not cross into rendering or DOM datasets.
 - Evidence: focused anti-leakage assertions plus full QA `35285007495`.
 
+### INV-010 — Facility atmosphere remains presentation-only
+- **State:** `verified-nonGPU`
+- Room atmosphere derives from sanitized machine phases and public consequences only.
+- Atmosphere may write CSS custom properties and safe `data-*` attributes but never gates traversal, endings, saves, or puzzle logic.
+- Focused tests prove VERBOTEN word/capture content and SUNDIAL glyph/code content do not cross the atmosphere projection.
+
+### INV-011 — Apparatus inspection cannot become puzzle authority
+- **State:** `verified-nonGPU`
+- Inspection yaw, pitch, zoom, drag, reset, and close state are presentation-only.
+- Existing semantic DOM machine controls remain the gameplay interaction authority.
+- No raycast-driven canonical puzzle command is included in this release.
+
+### INV-012 — Adaptive runtime telemetry stays local and non-authoritative
+- **State:** `verified-by-source-and-CI`
+- ECO/STANDARD/HIGH policy affects DPR, cadence, and incidental parallax only.
+- Offscreen/document/context pause reasons affect rendering work only.
+- Runtime counters are local diagnostics; they are not persisted or transmitted.
+
 ## 5. Verified Working Behavior
 
 ### VFY-001 — Local pinned Three.js runtime
@@ -117,13 +137,29 @@ Preserve the existing mystery, room traversal, persistence, archive, notebook, e
 - Canonical hour, anonymous glyph progress, reversal discovery, code-ready state, and successful use drive the 3D sundial without code leakage.
 - Merged/deployed checkpoint `bd3de1a` passed post-merge QA `35285227690` and Pages deployment `35285227621`.
 
+### VFY-009 — State-driven Facility 7-B atmosphere and semantic navigation
+- **State:** `verified-nonGPU`
+- Rooms receive bounded restoration/anomaly presentation from sanitized canonical consequences.
+- Door and facility-map navigation use semantic buttons while preserving locked-door explanation behavior.
+- Evidence: main QA `35289439286` and full-mystery playthrough.
+
+### VFY-010 — Presentation-only apparatus inspection contract
+- **State:** `verified-nonGPU`
+- Bounded rotation/zoom/reset/close helpers, keyboard mapping, reduced-motion behavior, fallback disabling, and listener cleanup paths are covered by CI.
+- Actual GPU-backed drag/zoom visual behavior remains unverified.
+
+### VFY-011 — Adaptive rendering and diagnostics policy
+- **State:** `verified-nonGPU`
+- Deterministic ECO/STANDARD/HIGH selection, DPR caps, cadence policy, pause-reason composition, fallback diagnostics, and disconnected-view pruning are covered by CI.
+- Actual device performance and GPU resource stability remain unverified.
+
 ## 6. Known Not Working
 
 None established from current evidence.
 
 ## 7. Implemented but Unverified
 
-Real GPU visual behavior remains unverified for all seven state-driven views: DEIMOS, CHRONOSTAT, ATLAS, ARCHIVE, ORACLE, VERBOTEN, and SUNDIAL. CI proves source behavior, browser fallback, and immutable projection contracts; it does not prove actual WebGL visual correctness, device performance, or long-session lifecycle behavior.
+Real GPU visual behavior remains unverified for all seven state-driven machine views and the new inspection/quality systems. CI proves source behavior, semantic browser flows, full-mystery progression, fallback behavior, immutable presentation contracts, quality-policy logic, and cleanup bookkeeping; it does not prove actual WebGL visual correctness, touch/pointer feel, sustained frame-time behavior, GPU resource recovery, or target-device performance.
 
 ## 8. Unknown or Evidence-Stale State
 
@@ -143,8 +179,9 @@ Real GPU rendering, visual correctness, sustained frame-time behavior, lifecycle
 - Focused projector coverage now includes the previously missing VERBOTEN anti-leakage cases plus SUNDIAL anti-code-leakage cases.
 
 ### PEND-003 — Lifecycle/performance evidence
-- **State:** `deferred`
-- Run repeated load/unload and renderer/resource instrumentation after seven state-driven machines exist and before full navigable Facility 7-B.
+- **State:** `partially-verified`
+- Pure runtime policy, pause composition, fallback diagnostics, disconnected-view pruning, and observer/listener cleanup paths are CI-covered.
+- Still required before full navigable Facility 7-B: real WebGL repeated traversal (target: 20 cycles), `renderer.info` resource-envelope observation, context-loss recovery, sustained frame cadence, and Galaxy Tab S9 Ultra evidence.
 
 ## 10. Active Decisions, Defaults, and Prohibitions
 
@@ -165,20 +202,23 @@ Real GPU rendering, visual correctness, sustained frame-time behavior, lifecycle
 
 | ID | Capability / invariant | State | Evidence | Next proof |
 | --- | --- | --- | --- | --- |
-| INV-001 | Existing game behavior preserved | verified | main QA `35282123826`; final branch QA `35285007495` | re-run on future gameplay changes |
+| INV-001 | Existing game behavior preserved | verified | main QA `35289439286`; full-mystery playthrough | re-run on future gameplay changes |
 | INV-002 | Canonical state outside Three.js | verified-nonGPU | 7 immutable machine projectors | real GPU observation |
-| INV-003 | One renderer/loop owner | verified-by-source-and-CI | managed runtime | lifecycle measurement |
-| INV-004 | 3D failure non-fatal | verified | resilience QA through final branch | real browser fallback spot-check |
+| INV-003 | One renderer/loop owner | verified-by-source-and-CI | managed runtime + final QA | lifecycle measurement |
+| INV-004 | 3D failure non-fatal | verified | resilience QA on `5df51a0` | real browser fallback spot-check |
 | INV-005 | ATLAS geometry bounded | verified-nonGPU | focused projection QA | real GPU coastline observation |
 | INV-006 | ARCHIVE revealed != solved | verified-nonGPU | focused projection QA | real GPU cabinet observation |
 | INV-007 | ORACLE hidden formula stays canonical | verified-nonGPU | focused projection QA | real GPU scale observation |
-| INV-008 | VERBOTEN content remains secret | verified-nonGPU | anti-leakage assertions + QA `35285007495` | real GPU progress observation |
-| INV-009 | SUNDIAL code remains secret | verified-nonGPU | anti-leakage assertions + QA `35285007495` | real GPU retrograde/code-ready observation |
-| PEND-002 | All seven projections | verified-nonGPU | merged/deployed `bd3de1a`; QA `35285227690`; Pages `35285227621` | real GPU proof |
+| INV-008 | VERBOTEN content remains secret | verified-nonGPU | anti-leakage projection QA | real GPU progress observation |
+| INV-009 | SUNDIAL code remains secret | verified-nonGPU | anti-leakage projection QA | real GPU retrograde observation |
+| INV-010 | Facility atmosphere presentation-only | verified-nonGPU | facility-atmosphere QA + browser/full playthrough | real visual observation |
+| INV-011 | Inspection does not own gameplay | verified-nonGPU | inspection helper + fallback QA | real pointer/touch inspection |
+| INV-012 | Adaptive telemetry local/non-authoritative | verified-by-source-and-CI | lifecycle policy QA | target-device measurements |
+| PEND-003 | GPU lifecycle/performance | partially-verified | pure policy/bookkeeping tests | 20-cycle GPU/resource/device run |
 
 ## 12. Current Change Scope and Impact Radius
 
-The seven-machine projection implementation is merged and deployed. This revision is a control-plane reconciliation only: it records the final `main` baseline and release evidence. No runtime code, canonical machine logic, traversal, persistence, notebook behavior, or endings change in this state-only revision.
+Dynamic expansion is merged and deployed at `5df51a0`. This revision is a control-plane reconciliation only. The implementation changed presentation/runtime/UI and QA surfaces; canonical machine rules, state schema, room gating, archive canon, notebook persistence, and ending logic were not changed. Future expansion must preserve the same boundaries until real GPU/lifecycle evidence justifies a continuous 3D Facility 7-B shell.
 
 ## 13. Compact Revision Log
 
@@ -191,3 +231,4 @@ The seven-machine projection implementation is merged and deployed. This revisio
 - **r7 — 2026-09-17:** Recorded merged/deployed ARCHIVE baseline and promoted ORACLE stored-reading projection after full branch QA; hidden significance logic remains exclusively canonical.
 - **r8 — 2026-09-17:** Recorded merged/deployed VERBOTEN baseline, repaired missing focused VERBOTEN anti-leakage coverage, and promoted SUNDIAL as the seventh state-driven projection after full branch QA.
 - **r9 — 2026-09-17:** Reconciled the final merged/deployed seven-machine baseline at `bd3de1a`; post-merge QA and Pages both passed. Real GPU, lifecycle, and device-performance proof remain pending.
+- **r10 — 2026-09-18:** Merged/deployed dynamic expansion at `5df51a0`: state-driven facility atmosphere, semantic navigation, presentation-only apparatus inspection, adaptive rendering tiers, offscreen suspension, local telemetry, and full-mystery CI gating. Main QA `35289439286` and Pages `35289439168` passed; GPU/device proof remains pending.
