@@ -11,6 +11,7 @@ import { allDocumentsForState, documentById, searchDocuments } from './archive/s
 import { DOCUMENTS } from './archive/documents.js';
 import { computeEnding, commitEnding } from './core/ending.js';
 import { initialInventory } from './machines/oracle.js';
+import { projectFacilityAtmosphere, applyFacilityAtmosphere } from './ui/facility-atmosphere.js';
 import {
   buildDeimosUI, buildChronostatUI, buildAtlasUI,
   buildArchiveUI, buildOracleUI, buildVerbotenUI, buildSundialUI
@@ -131,6 +132,8 @@ function showRoom(store) {
   ]);
 
   const stage = el('section', { class: 'stage' });
+  const atmosphere = projectFacilityAtmosphere(store.get(), room);
+  applyFacilityAtmosphere(stage, atmosphere);
   const ambient = el('div', { class: 'ambient', text: room.ambience || '' });
   const title = el('h1', { class: 'room-title', text: room.name });
   const subtitle = el('div', { class: 'room-subtitle', text: room.subtitle || '' });
@@ -139,8 +142,10 @@ function showRoom(store) {
   const doors = el('div', { class: 'doors' });
   for (const d of room.doors || []) {
     const ok = canTraverse(state.player.roomId, d.id, state);
-    const pill = el('div', {
+    const pill = el('button', {
+      type: 'button',
       class: 'door-pill ' + (ok.ok ? '' : 'locked'),
+      attrs: { 'aria-disabled': ok.ok ? 'false' : 'true' },
       onClick: () => {
         if (!ok.ok) {
           store.bus.emit('notebook:auto', {
@@ -181,7 +186,7 @@ function showRoom(store) {
     buildNotebookMini(store)
   ]);
 
-  const wrap = el('div', { class: 'room' }, [left, stage, right]);
+  const wrap = el('div', { class: 'room', dataset: { roomId: room.id, facilityTone: atmosphere.tone } }, [left, stage, right]);
   main.appendChild(wrap);
 }
 
@@ -208,7 +213,13 @@ function buildMap(store) {
     const here = state.player.roomId === id;
     const visited = state.rooms[id]?.visited;
     const unlocked = state.rooms[id]?.unlocked;
-    const row = el('div', {
+    const row = el('button', {
+      type: 'button',
+      class: 'map-room-button',
+      attrs: {
+        'aria-disabled': unlocked ? 'false' : 'true',
+        ...(here ? { 'aria-current': 'location' } : {})
+      },
       style: {
         fontFamily: 'var(--mono)',
         fontSize: '12px',

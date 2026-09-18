@@ -160,6 +160,10 @@ label { color: var(--ink-soft); font-size: 11px; letter-spacing: 0.08em; text-tr
 }
 
 .room .stage {
+  --facility-restoration: 0;
+  --facility-anomaly: 0;
+  --facility-brass-alpha: 0.018;
+  --facility-oxide-alpha: 0;
   background: var(--bg-room);
   display: flex;
   flex-direction: column;
@@ -167,6 +171,54 @@ label { color: var(--ink-soft); font-size: 11px; letter-spacing: 0.08em; text-tr
   justify-content: flex-start;
   position: relative;
   overflow: hidden;
+  isolation: isolate;
+}
+
+/* Facility atmosphere layer — presentation only; never owns puzzle state. */
+.room .stage::before,
+.room .stage::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  z-index: 0;
+}
+.room .stage::before {
+  background:
+    radial-gradient(circle at 52% 18%, rgba(200,162,90,var(--facility-brass-alpha)) 0%, transparent 38%),
+    linear-gradient(125deg, transparent 0 62%, rgba(106,138,79,calc(var(--facility-restoration) * .055)) 100%);
+  opacity: .95;
+}
+.room .stage::after {
+  background:
+    linear-gradient(180deg, rgba(177,74,58,var(--facility-oxide-alpha)), transparent 30% 72%, rgba(0,0,0,.18)),
+    repeating-linear-gradient(90deg, rgba(216,212,197,.012) 0 1px, transparent 1px 72px);
+  mix-blend-mode: screen;
+  opacity: calc(.34 + var(--facility-anomaly) * .32);
+}
+.room .stage > * { position: relative; z-index: 1; }
+.room .stage[data-facility-tone="unstable"]::after {
+  animation: facilityContainmentPulse 5.8s ease-in-out infinite;
+}
+.room .stage[data-facility-tone="restored"]::before {
+  box-shadow: inset 0 0 120px rgba(200,162,90,.045);
+}
+.room .stage[data-facility-tone="terminal"]::before {
+  background: radial-gradient(circle at 50% 28%, rgba(200,162,90,.12), transparent 48%);
+}
+.room .stage[data-room-id="corridor_n"]::before {
+  background:
+    linear-gradient(180deg, rgba(200,162,90,var(--facility-brass-alpha)), transparent 34%),
+    linear-gradient(90deg, transparent, rgba(216,212,197,.025), transparent);
+}
+.room .stage[data-room-id="corridor_s"]::before {
+  background:
+    linear-gradient(0deg, rgba(106,138,79,calc(var(--facility-restoration) * .07)), transparent 42%),
+    radial-gradient(circle at 18% 55%, rgba(177,74,58,var(--facility-oxide-alpha)), transparent 36%);
+}
+@keyframes facilityContainmentPulse {
+  0%, 100% { opacity: calc(.30 + var(--facility-anomaly) * .28); }
+  50% { opacity: calc(.38 + var(--facility-anomaly) * .32); }
 }
 
 .room .stage .ambient {
@@ -212,6 +264,7 @@ label { color: var(--ink-soft); font-size: 11px; letter-spacing: 0.08em; text-tr
 }
 
 .door-pill {
+  appearance: none;
   font-family: var(--mono);
   font-size: 11px;
   letter-spacing: 0.1em;
@@ -232,6 +285,23 @@ label { color: var(--ink-soft); font-size: 11px; letter-spacing: 0.08em; text-tr
   cursor: not-allowed;
   background: transparent;
 }
+.door-pill:focus-visible,
+.map-room-button:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+.map-room-button {
+  width: 100%;
+  text-align: left;
+  border-color: transparent;
+  background: transparent;
+}
+.map-room-button:hover:not([aria-current="location"]):not([aria-disabled="true"]) {
+  border-color: var(--rule);
+  color: var(--accent);
+}
+.map-room-button[aria-disabled="true"] { cursor: default; }
+
 .door-pill .dir {
   display: inline-block;
   width: 18px;
@@ -677,6 +747,10 @@ label { color: var(--ink-soft); font-size: 11px; letter-spacing: 0.08em; text-tr
   .room .panel, .room .panel.right { border: none; border-bottom: 1px solid var(--rule); max-height: 30vh; }
   .archive-grid { grid-template-columns: 1fr; grid-template-rows: 30vh 1fr; }
 }
+@media (prefers-reduced-motion: reduce) {
+  .room .stage[data-facility-tone="unstable"]::after { animation: none; }
+}
+
 @media (max-width: 700px) {
   .title-bar .wordmark small { display: none; }
   .title-bar nav button { padding: 4px 8px; }

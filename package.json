@@ -12,7 +12,11 @@
     "qa": "node qa/run.mjs",
     "qa:browser": "npm run prepare:three && node qa/browser.mjs",
     "qa:three": "npm run prepare:three && node qa/three-runtime.mjs",
-    "qa:three-state": "node qa/machine-state.mjs"
+    "qa:three-state": "node qa/machine-state.mjs",
+    "qa:facility-atmosphere": "node qa/facility-atmosphere.mjs",
+    "qa:three-inspection": "node qa/three-inspection.mjs",
+    "qa:three-lifecycle": "node qa/three-lifecycle.mjs",
+    "qa:playthrough": "node qa/playthrough.mjs"
   },
   "dependencies": {
     "three": "0.186.0"
