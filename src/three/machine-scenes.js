@@ -772,7 +772,7 @@ function injectStyles() {
     .machine-three-view[data-inspecting="true"] .machine-three-inspect{display:none}
     .machine-three-view[data-inspecting="true"] .machine-three-canvas{touch-action:none;cursor:grab}
     .machine-three-view[data-inspecting="true"][data-dragging="true"] .machine-three-canvas{cursor:grabbing}
-    .machine-three-inspection-toolbar{display:none;position:absolute;z-index:5;right:10px;bottom:10px;gap:6px;padding:6px;border:1px solid rgba(200,162,90,.28);background:rgba(17,19,15,.88)}
+    .machine-three-inspection-toolbar{display:none;position:absolute;z-index:5;right:10px;top:8px;gap:6px;padding:6px;border:1px solid rgba(200,162,90,.28);background:rgba(17,19,15,.88)}
     .machine-three-view[data-inspecting="true"] .machine-three-inspection-toolbar{display:flex}
     .machine-three-inspection-toolbar button{padding:5px 7px;font:9px/1.1 var(--mono);letter-spacing:.1em}
     .machine-three-announcer{position:absolute;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip:rect(0,0,0,0);white-space:nowrap;border:0}
@@ -958,7 +958,10 @@ function setInspectionMode(active, enabled) {
   const announcer = active.entry.host.querySelector('.machine-three-announcer');
   if (announcer) announcer.textContent = active.inspection.enabled ? 'Apparatus inspection mode entered.' : 'Apparatus inspection mode closed.';
   if (!active.inspection.enabled) resetInspection(active);
-  if (active.inspection.enabled) active.entry.host.focus?.({ preventScroll: true });
+  if (active.inspection.enabled) {
+    active.entry.host.scrollIntoView?.({ block: 'center', inline: 'nearest', behavior: active.reducedMotion?.matches ? 'auto' : 'smooth' });
+    active.entry.host.focus?.({ preventScroll: true });
+  }
   resizeActive();
 }
 

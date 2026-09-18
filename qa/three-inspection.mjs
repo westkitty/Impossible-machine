@@ -1,4 +1,6 @@
 // qa/three-inspection.mjs
+import { readFileSync } from 'node:fs';
+
 import {
   INSPECTION_LIMITS,
   normalizeInspectionState,
@@ -6,6 +8,8 @@ import {
   applyInspectionDelta,
   interpolateInspectionState
 } from '../src/three/inspection.js';
+
+const source = readFileSync(new URL('../src/three/machine-scenes.js', import.meta.url), 'utf8');
 
 const failures = [];
 const assert = (condition, message) => {
@@ -49,6 +53,18 @@ assert(Math.abs(reduced.distance - 3.2) < 1e-12, 'reduced-motion inspection reac
 assert(inspectionCommandForKey('Escape')?.action === 'close', 'Escape maps to close action');
 assert(inspectionCommandForKey('R')?.action === 'reset', 'R maps to reset action');
 assert(inspectionCommandForKey('x') === null, 'unrelated keys are ignored');
+assert(
+  source.includes('.machine-three-inspection-toolbar{display:none;position:absolute;z-index:5;right:10px;top:8px;'),
+  'inspection toolbar is pinned to the visible top edge'
+);
+assert(
+  !source.includes('.machine-three-inspection-toolbar{display:none;position:absolute;z-index:5;right:10px;bottom:10px;'),
+  'inspection toolbar no longer depends on an offscreen bottom edge'
+);
+assert(
+  source.includes("scrollIntoView?.({ block: 'center', inline: 'nearest'"),
+  'inspection entry centers the expanded host in the viewport'
+);
 
 if (failures.length) {
   console.error(`THREE INSPECTION QA: ${failures.length} failure(s)`);
