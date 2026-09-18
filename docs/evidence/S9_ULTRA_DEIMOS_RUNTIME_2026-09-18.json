@@ -1,0 +1,136 @@
+{
+  "schema": "threejs-performance-lifecycle-evidence-v1",
+  "recorded_at_utc": "2026-09-18T01:00:00Z",
+  "project": "The Department of Impossible Machines",
+  "repository": "westkitty/Impossible-machine",
+  "deployed_commit": "4bd988b1035c998dbe1ceabe89d19cc555d2f20b",
+  "deployment_url": "https://westkitty.github.io/Impossible-machine/",
+  "scope": "Galaxy Tab S9 Ultra deployed DEIMOS runtime path",
+  "environment": {
+    "device_model": "SM-X910",
+    "chrome_version": "152.0.7977.82",
+    "physical_size": "1848x2960",
+    "density_override": 320,
+    "css_screen": [
+      1480,
+      924
+    ],
+    "css_inner_viewport": [
+      1244,
+      630
+    ],
+    "device_pixel_ratio": 2.378220796585083,
+    "hardware_concurrency": 8,
+    "device_memory_gb_reported": 8,
+    "prefers_reduced_motion": false,
+    "webgl_version": "WebGL 2.0 (OpenGL ES 3.0 Chromium)",
+    "renderer": "ANGLE (Qualcomm, Adreno (TM) 740, OpenGL ES 3.2)",
+    "vendor": "Google Inc. (Qualcomm)"
+  },
+  "deimos_baseline": {
+    "quality_tier": "HIGH",
+    "runtime_pixel_ratio": 1.75,
+    "renderer_info": {
+      "geometries": 9,
+      "textures": 1,
+      "programs": 2,
+      "calls": 9,
+      "triangles": 5560,
+      "lines": 34
+    }
+  },
+  "frame_sample": {
+    "retained_frames": 175,
+    "p50_ms": 16.7,
+    "p95_ms": 16.7,
+    "p99_ms": 16.8,
+    "max_ms": 25,
+    "mean_ms": 16.618857142857077,
+    "note": "short representative requestAnimationFrame sample; not a thermal test"
+  },
+  "lifecycle_20_cycles": {
+    "active": {
+      "geometries": [
+        9,
+        9
+      ],
+      "textures": [
+        1,
+        1
+      ],
+      "programs": [
+        2,
+        2
+      ]
+    },
+    "inactive": {
+      "geometries": [
+        0,
+        0
+      ],
+      "textures": [
+        1,
+        1
+      ],
+      "programs": [
+        0,
+        0
+      ]
+    },
+    "monotonic_growth_observed": false,
+    "note": "single renderer-owned texture remained stable while scene geometries/programs returned to zero"
+  },
+  "context_loss": {
+    "extension": "WEBGL_lose_context",
+    "supported": true,
+    "frames_during_lost_interval_delta": 0,
+    "restored": true,
+    "restored_resources": {
+      "geometries": 9,
+      "textures": 1,
+      "programs": 2
+    },
+    "host_status_after_restore": "ready"
+  },
+  "offscreen": {
+    "pause_reason": "offscreen",
+    "frames_during_offscreen_interval_delta": 0,
+    "resumed_after_visible": true
+  },
+  "touch_inspection": {
+    "pre_repair_defect": "RESET/CLOSE toolbar bottom edge fell below 630px viewport after expansion",
+    "repair_pr": 9,
+    "repair_commit": "4bd988b1035c998dbe1ceabe89d19cc555d2f20b",
+    "post_repair_host_rect": {
+      "top": 168.6462860107422,
+      "bottom": 534.4659576416016,
+      "height": 365.8196716308594
+    },
+    "post_repair_toolbar_rect": {
+      "top": 177.4829864501953,
+      "bottom": 212.74437713623047,
+      "height": 35.261390686035156
+    },
+    "screenshot_hash_before_drag": "bf0e35dd3b7d5aa7aa5f680a749ebd70077efbe1cf84fd382edc499d617eb4d3",
+    "screenshot_hash_after_drag": "67bac6ae6b9580865fe524eebb5ffe4ea6dfb76ee311e884657f2f25414ab078",
+    "drag_changed_render": true,
+    "close_control_center_y_css": 172.82812118530273,
+    "inspecting_after_close": false,
+    "host_height_after_close": 218,
+    "renderer_resources_after_close": {
+      "geometries": 9,
+      "textures": 1,
+      "programs": 2
+    },
+    "frame_ms_ema_after_close": 16.664141912463744
+  },
+  "verdict": {
+    "bounded_scenario": "PASS",
+    "global_project": "PARTIAL EVIDENCE",
+    "remaining": [
+      "real GPU visual/runtime observation for CHRONOSTAT, ATLAS, ARCHIVE, ORACLE, VERBOTEN, and SUNDIAL",
+      "long-duration sustained/thermal session",
+      "broader browser/device coverage"
+    ]
+  }
+}

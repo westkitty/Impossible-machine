@@ -7,12 +7,12 @@
   "project_name": "The Department of Impossible Machines",
   "project_root": ".",
   "artifact_path": "",
-  "state_revision": 10,
-  "last_updated": "2026-09-18T00:04:00Z",
+  "state_revision": 11,
+  "last_updated": "2026-09-18T01:00:00Z",
   "current_baseline": {
-    "identity": "main 5df51a05b7baa8f1666d2518b8030a654a026e9c merged and deployed with seven state-driven machines plus dynamic Facility 7-B presentation/runtime expansion",
+    "identity": "main 4bd988b1035c998dbe1ceabe89d19cc555d2f20b merged and deployed with S9-verified DEIMOS lifecycle/runtime path and tablet inspection repair",
     "state": "partially-verified",
-    "last_verified": "main QA 35289439286; Pages 35289439168; PR QA 35289340094"
+    "last_verified": "main QA 35293268314; Pages 35293268213; S9 Ultra Chrome 152 WebGL2 Adreno 740 acceptance"
   },
   "scope_boundaries": ["Browser mystery application and GitHub Pages deployment"],
   "linked_parent_state": null
@@ -25,11 +25,11 @@ The Department of Impossible Machines is a browser mystery set in Facility 7-B. 
 
 ## 2. Current Baseline
 
-`main` at `5df51a05b7baa8f1666d2518b8030a654a026e9c` contains the production-safe local Three.js runtime, all seven canonical-state-driven machine projections, state-driven Facility 7-B atmosphere, semantic facility navigation, presentation-only apparatus inspection, adaptive ECO/STANDARD/HIGH rendering policy, offscreen rendering suspension, and local runtime telemetry.
+`main` at `4bd988b1035c998dbe1ceabe89d19cc555d2f20b` is deployed and passes the full QA matrix. It contains the seven state-driven Three.js machine projections, state-driven Facility 7-B atmosphere, semantic facility navigation, presentation-only apparatus inspection, adaptive ECO/STANDARD/HIGH rendering policy, offscreen suspension, and local runtime telemetry.
 
-GitHub Actions QA run `35289439286` and Pages deployment `35289439168` both completed successfully on that exact SHA. The QA matrix now includes core tests, browser flow, full-mystery playthrough, Three.js fallback, seven-machine projection tests, facility-atmosphere tests, apparatus-inspection helper tests, and lifecycle/runtime-policy tests.
+Real-device evidence now exists for the deployed DEIMOS path on a Galaxy Tab S9 Ultra (`SM-X910`) running Chrome `152.0.7977.82`, WebGL 2, and Adreno 740. In that bounded scenario, HIGH tier at DPR cap 1.75 sustained an approximately 16.7 ms frame cadence, 20 repeated room-entry/exit cycles showed no monotonic geometry/program growth, forced WebGL context loss paused rendering and restored cleanly, offscreen suspension halted rendering, and touch inspection entered, dragged visibly, and closed successfully after the tablet-toolbar repair.
 
-Real WebGL appearance, pointer/touch inspection behavior on a GPU-backed browser, repeated GPU resource lifecycle behavior, context restoration under real WebGL, and target-device performance remain pending evidence rather than assumed completion.
+This does **not** establish all-seven-machine visual correctness, long-session thermal stability, or every device/browser combination. Those remain explicit follow-up evidence requirements.
 
 ## 3. Artifact Contract
 
@@ -144,14 +144,18 @@ Preserve the existing mystery, room traversal, persistence, archive, notebook, e
 - Evidence: main QA `35289439286` and full-mystery playthrough.
 
 ### VFY-010 — Presentation-only apparatus inspection contract
-- **State:** `verified-nonGPU`
-- Bounded rotation/zoom/reset/close helpers, keyboard mapping, reduced-motion behavior, fallback disabling, and listener cleanup paths are covered by CI.
-- Actual GPU-backed drag/zoom visual behavior remains unverified.
+- **State:** `verified-S9-DEIMOS`
+- CI covers bounded rotation/zoom/reset/close helpers, keyboard mapping, reduced-motion behavior, fallback disabling, and listener cleanup paths.
+- Galaxy Tab S9 Ultra deployed-browser evidence proves touch entry, visible touch-drag response, and touch CLOSE on DEIMOS.
+- A real-device defect was found before promotion: RESET/CLOSE were below the current tablet viewport after expansion. PR #9 moved the toolbar to the top edge and centers the host on entry; deployed acceptance on `4bd988b` passed.
 
 ### VFY-011 — Adaptive rendering and diagnostics policy
-- **State:** `verified-nonGPU`
+- **State:** `verified-S9-DEIMOS`
 - Deterministic ECO/STANDARD/HIGH selection, DPR caps, cadence policy, pause-reason composition, fallback diagnostics, and disconnected-view pruning are covered by CI.
-- Actual device performance and GPU resource stability remain unverified.
+- On S9 Ultra DEIMOS, runtime selected HIGH at DPR 1.75. A 175-frame sample measured approximately 16.7 ms p50/p95/p99, 25 ms max, and 16.619 ms mean.
+- Twenty enter/leave cycles held activation resources at 9 geometries / 1 texture / 2 programs and deactivation resources at 0 geometries / 1 renderer-owned texture / 0 programs, with no monotonic growth.
+- Forced `WEBGL_lose_context` produced zero rendered frames while lost and restored to the same 9/1/2 envelope. Offscreen suspension likewise held frame count constant until visible again.
+- Long thermal runs and other machine scenes remain unverified.
 
 ## 6. Known Not Working
 
@@ -159,11 +163,11 @@ None established from current evidence.
 
 ## 7. Implemented but Unverified
 
-Real GPU visual behavior remains unverified for all seven state-driven machine views and the new inspection/quality systems. CI proves source behavior, semantic browser flows, full-mystery progression, fallback behavior, immutable presentation contracts, quality-policy logic, and cleanup bookkeeping; it does not prove actual WebGL visual correctness, touch/pointer feel, sustained frame-time behavior, GPU resource recovery, or target-device performance.
+Real GPU evidence is now available for the deployed DEIMOS path on Galaxy Tab S9 Ultra, including frame cadence, 20-cycle resource lifecycle, context loss/restoration, offscreen suspension, and touch inspection. Equivalent visual/runtime evidence is still missing for CHRONOSTAT, ATLAS, ARCHIVE, ORACLE, VERBOTEN, and SUNDIAL, and no long-duration thermal/session test has been completed.
 
 ## 8. Unknown or Evidence-Stale State
 
-Real GPU rendering, visual correctness, sustained frame-time behavior, lifecycle recovery under repeated room traversal, and context restoration on deployed Pages remain unverified. Local Mac execution is unavailable from the current runtime, so local working-copy and device-side browser claims are not made.
+Cross-machine GPU visual correctness, sustained long-session thermal behavior, and non-S9 device/browser performance remain unknown. DEIMOS on S9 Ultra is no longer unknown: that bounded deployed path has real WebGL, lifecycle, recovery, offscreen, cadence, and touch evidence.
 
 ## 9. Pending Work
 
@@ -179,9 +183,9 @@ Real GPU rendering, visual correctness, sustained frame-time behavior, lifecycle
 - Focused projector coverage now includes the previously missing VERBOTEN anti-leakage cases plus SUNDIAL anti-code-leakage cases.
 
 ### PEND-003 — Lifecycle/performance evidence
-- **State:** `partially-verified`
-- Pure runtime policy, pause composition, fallback diagnostics, disconnected-view pruning, and observer/listener cleanup paths are CI-covered.
-- Still required before full navigable Facility 7-B: real WebGL repeated traversal (target: 20 cycles), `renderer.info` resource-envelope observation, context-loss recovery, sustained frame cadence, and Galaxy Tab S9 Ultra evidence.
+- **State:** `verified-for-S9-DEIMOS; broader-proof-pending`
+- Galaxy Tab S9 Ultra DEIMOS now satisfies the 20-cycle traversal/resource test, real context-loss recovery, offscreen pause/resume, real touch inspection, and short frame-cadence evidence.
+- Still required before a full navigable Facility 7-B shell: equivalent real-GPU observation across the remaining six machine scenes plus a longer sustained/thermal session.
 
 ## 10. Active Decisions, Defaults, and Prohibitions
 
@@ -212,13 +216,13 @@ Real GPU rendering, visual correctness, sustained frame-time behavior, lifecycle
 | INV-008 | VERBOTEN content remains secret | verified-nonGPU | anti-leakage projection QA | real GPU progress observation |
 | INV-009 | SUNDIAL code remains secret | verified-nonGPU | anti-leakage projection QA | real GPU retrograde observation |
 | INV-010 | Facility atmosphere presentation-only | verified-nonGPU | facility-atmosphere QA + browser/full playthrough | real visual observation |
-| INV-011 | Inspection does not own gameplay | verified-nonGPU | inspection helper + fallback QA | real pointer/touch inspection |
-| INV-012 | Adaptive telemetry local/non-authoritative | verified-by-source-and-CI | lifecycle policy QA | target-device measurements |
-| PEND-003 | GPU lifecycle/performance | partially-verified | pure policy/bookkeeping tests | 20-cycle GPU/resource/device run |
+| INV-011 | Inspection does not own gameplay | verified-S9-DEIMOS | CI + deployed S9 touch enter/drag/close | repeat on remaining machine scenes |
+| INV-012 | Adaptive telemetry local/non-authoritative | verified-S9-DEIMOS | lifecycle QA + deployed S9 runtime measurements | broader device/machine coverage |
+| PEND-003 | GPU lifecycle/performance | verified-S9-DEIMOS; broader-proof-pending | 20-cycle 9/1/2 stable envelope, context loss, offscreen pause, ~16.7 ms cadence | six remaining scenes + long thermal run |
 
 ## 12. Current Change Scope and Impact Radius
 
-Dynamic expansion is merged and deployed at `5df51a0`. This revision is a control-plane reconciliation only. The implementation changed presentation/runtime/UI and QA surfaces; canonical machine rules, state schema, room gating, archive canon, notebook persistence, and ending logic were not changed. Future expansion must preserve the same boundaries until real GPU/lifecycle evidence justifies a continuous 3D Facility 7-B shell.
+Tablet/runtime proof found one bounded presentation defect: inspection RESET/CLOSE controls could fall below the S9 viewport after expansion. PR #9 changed only `src/three/machine-scenes.js` and `qa/three-inspection.mjs`, moving the toolbar to the top edge and centering the host on inspection entry. Main `4bd988b` passes QA `35293268314`, Pages `35293268213`, and the post-deploy S9 touch acceptance path. Canonical puzzle state, machine rules, saves, gates, endings, renderer ownership, and quality policy were not changed.
 
 ## 13. Compact Revision Log
 
@@ -232,3 +236,5 @@ Dynamic expansion is merged and deployed at `5df51a0`. This revision is a contro
 - **r8 — 2026-09-17:** Recorded merged/deployed VERBOTEN baseline, repaired missing focused VERBOTEN anti-leakage coverage, and promoted SUNDIAL as the seventh state-driven projection after full branch QA.
 - **r9 — 2026-09-17:** Reconciled the final merged/deployed seven-machine baseline at `bd3de1a`; post-merge QA and Pages both passed. Real GPU, lifecycle, and device-performance proof remain pending.
 - **r10 — 2026-09-18:** Merged/deployed dynamic expansion at `5df51a0`: state-driven facility atmosphere, semantic navigation, presentation-only apparatus inspection, adaptive rendering tiers, offscreen suspension, local telemetry, and full-mystery CI gating. Main QA `35289439286` and Pages `35289439168` passed; GPU/device proof remains pending.
+
+- **r11 — 2026-09-18:** Added real Galaxy Tab S9 Ultra / Chrome 152 / WebGL2 Adreno 740 evidence for the deployed DEIMOS path: HIGH tier at DPR 1.75, ~16.7 ms short-run cadence, stable 20-cycle 9/1/2 resource envelope, successful real context-loss recovery, offscreen suspension, and touch inspection. Found and repaired offscreen inspection controls through PR #9; deployed acceptance passed on `4bd988b`. Broader six-machine and long thermal proof remain pending.
